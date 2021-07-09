@@ -1,0 +1,65 @@
+---
+title: "Wetland Complexes - vegetation"
+author: "Dana Lanceman"
+date: "09/07/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Set up}
+library(tidyverse)
+library(readxl)
+
+vege_prop_5 <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "Major_>5%")
+
+vege_prop_1 <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "Major_>1%")
+
+vege_all <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "All")
+```
+
+```{r Stacked bar plots}
+
+# reorder ANAE_TYPE for vege_prop_5
+vege_prop_5$ANAE_TYPE <- factor(vege_prop_5$ANAE_TYPE,levels = c( 
+  "Other",
+  "Pp4.2: Permanent wetland",
+  "Pt1.1.1: River red gum riparian zone or floodplain",
+  "Pt1.2.1: Black box riparian zone or floodplain",
+  "Pt1.3.1: Coolibah riparian zone or floodplain",
+  "Pt1.6.2: Temporary woodland swamp",
+  "Pt1.7.1: Lignum riparian zone or floodplain", 
+  "Pt1.8.1: Riparian or floodplain shrubland",
+  "Pt1.8.2: Temporary shrub swamp",  
+  "Pt2.2.2: Temporary sedge/grass/forb marsh",
+  "Pp2.1.2: Permanent tall emergent marsh",
+  "Pt2.3.2: Freshwater meadow",
+  "Pt4.1: Floodplain or riparian wetland",
+  "Rp1.4: Permanent lowland stream",  
+  "Lp1.1: Permanent lake",                             
+  "Lt1.1: Temporary lake"))
+
+ggplot(tips2, aes(x = day, y = perc)) + geom_bar(stat = "identity")
+
+ggplot(vege_prop_5, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) + 
+    geom_bar(position="stack", stat="identity") +
+  coord_flip() # make horizontal
+
+ggplot(vege_prop_5, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
+    geom_bar(position="stack", stat="identity") +
+  coord_flip() # make horizontal
+
+# too busy
+#ggplot(vege_prop_1, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
+#    geom_bar(position="stack", stat="identity") +
+#  coord_flip()
+
+ggplot(vege_all, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
+    geom_bar(position = "stack", stat="identity") +
+  coord_flip() # make horizontal
+```
+
