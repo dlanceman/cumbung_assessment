@@ -1,0 +1,40 @@
+---
+title: "Waterbirds"
+author: "Dana Lanceman"
+date: "8/23/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup}
+library(tidyverse)
+library(readxl)
+library(viridis)
+
+wb <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment/raw/waterbird_ecosystem_complex_2.xlsx", "long_alldata")
+
+head(wb)
+```
+
+```{r scatterplots - all data}
+ggplot(wb, aes(x=rainfall_log, y=Waterbirds_log, fill = Wetland)) +
+  geom_point(aes(color=Wetland)) 
+
+ggplot(wb, aes(x=Flows_3mos_log, y=Waterbirds_log, fill = Wetland)) +
+  geom_point(aes(color=Wetland)) 
+
+ggplot(wb, aes(x=Flows_6mos_log, y=Waterbirds_log, fill = Wetland)) +
+  geom_point(aes(color=Wetland)) 
+
+ggplot(wb, aes(x=Flows_12mos_log, y=Waterbirds_log, fill = Wetland)) +
+  geom_point(aes(color=Wetland)) 
+
+
+
+```
+
