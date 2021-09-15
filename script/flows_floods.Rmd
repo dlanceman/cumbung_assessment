@@ -1,0 +1,124 @@
+---
+title: "Flows and floods"
+author: "Dana Lanceman"
+date: "9/14/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Set up}
+library(tidyverse)
+library(readxl)
+
+summ <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment/raw/flows_floods_summary_forR.xlsx", sheet = "all_5yr")
+
+```
+
+# Assumptions of correlation tests
+• Samples are randomly selected
+• Samples are independent
+• Joint distribution of X and Y is bivariate normal - test using scatter plots
+
+```{r Correlation assumptions - test bivariate normality}
+
+# make a function that plots each variable 
+plotscatter<-function(a){       
+  for (i in c(3:28)){
+    print(ggplot(data=a,aes()) + 
+      geom_point(aes_string(x=summ$Midyear,y=names(a)[i])))
+    }}
+plotscatter(summ)
+
+# no non-linear relationships detected
+# some points look like outliers, but they are real values and therefore acceptable. Flows and floods have large interannual to decadal variability
+```
+
+
+```{r Correlation tests}
+cor.test(summ$Midyear, summ$booligal_l, na.rm = TRUE) # p-value = 0.00724, r = -0.6614745
+lmBool_l <- lm(Midyear~booligal_l, data = summ) # do a regression to get the coefficient estimates
+summary(lmBool_l) # intercept = 2003.2655, coefficient of booligal_l = -0.4604, R2 adj = 0.3943 
+
+cor.test(summ$Midyear, summ$booligal_d, na.rm = TRUE) # p-value = 0.0006651, r = -0.7763756 
+lmBool_d <- lm(Midyear~booligal_d, data = summ) 
+summary(lmBool_d) # intercept = 2.012e+03, coefficient = -3.640e-02, R2 adj = 0.5722
+
+cor.test(summ$Midyear, summ$flow2sa_d, na.rm = TRUE) # p-value = 0.005506, r = -0.5485943 
+lmFlow_d <- lm(Midyear~flow2sa_d, data = summ) 
+summary(lmFlow_d) # intercept = 1.995e+03, coef = -1.191e-03, R2 adj = 0.2692
+
+cor.test(summ$Midyear, summ$renmark_l, na.rm = TRUE) # p-value = 0.1484, r = -0.4922441 
+lmRen_l <- lm(Midyear~renmark_l, data = summ) 
+summary(lmRen_l) # int = 2004.08011, coef = -0.15896, R2 adj = 0.1476
+
+
+
+cor.test(summ$Midyear, summ$murL10_d, na.rm = TRUE) # p-value = 0.2311, r = -0.5203966 
+
+cor.test(summ$Midyear, summ$murL10_l, na.rm = TRUE) # p-value = 0.104, r = -0.6638192 
+
+cor.test(summ$Midyear, summ$corrong_l, na.rm = TRUE) # p-value = 0.283, r = -0.4337173
+
+cor.test(summ$Midyear, summ$corrong_d, na.rm = TRUE) # p-value = 0.1771, r = -0.5295899 
+
+cor.test(summ$Midyear, summ$c_bool_l, na.rm = TRUE) # p-value = 0.0004956, r = -0.7871979 
+
+cor.test(summ$Midyear, summ$c_bool_d, na.rm = TRUE) # p-value = 0.001091, r = -0.7567517 
+
+cor.test(summ$Midyear, summ$gwydir_l, na.rm = TRUE) # p-value = 0.01697, r = -0.6244643 
+# gwydir is not really linear, it dropped to near zero and now is hovering there as it can't get any lower
+
+cor.test(summ$Midyear, summ$gwydir_d, na.rm = TRUE) # p-value = 0.1325, r = -0.4222825 
+
+cor.test(summ$Midyear, summ$hat_col_l, na.rm = TRUE) # p-value = 0.301, r = -0.3888398 
+
+cor.test(summ$Midyear, summ$hat_col_d, na.rm = TRUE) # p-value = 0.127, r = -0.4658111 
+
+cor.test(summ$Midyear, summ$hat_bar_l, na.rm = TRUE) # p-value = 0.01044, r = -0.5341843 
+
+cor.test(summ$Midyear, summ$hat_bar_d, na.rm = TRUE) # p-value = 0.01079, r = -0.532153 
+
+cor.test(summ$Midyear, summ$low_red_l, na.rm = TRUE) # p-value = 0.6954, r = -0.2059971 
+# lack of data
+
+cor.test(summ$Midyear, summ$low_red_d, na.rm = TRUE) # p-value = 0.3798, r = -0.4423303 
+# lack of data
+
+cor.test(summ$Midyear, summ$low_nar_d, na.rm = TRUE) # p-value = 0.2232, r = -0.3476739 
+
+cor.test(summ$Midyear, summ$mac_l, na.rm = TRUE) # p-value = 0.08085, r = -0.5481376 
+
+cor.test(summ$Midyear, summ$mac_d, na.rm = TRUE) # p-value = 0.02478, r = -0.6676527 
+
+cor.test(summ$Midyear, summ$par_l, na.rm = TRUE) # p-value = 0.5163, r = -0.2501056
+# no correlation
+
+cor.test(summ$Midyear, summ$par_d, na.rm = TRUE) # p-value = 0.2596, r = -0.4206461 
+# no correlation
+
+cor.test(summ$Midyear, summ$yan_tur_l, na.rm = TRUE) # p-value = 0.26, r = -0.5483067 
+# recent 4 x 5yr intervals have much fewer flood days than the previous two
+
+cor.test(summ$Midyear, summ$yan_tur_d, na.rm = TRUE) # p-value = 0.8827, r = 0.0783811 
+# no correlation
+
+cor.test(summ$Midyear, summ$yan_wy_d, na.rm = TRUE) # p-value = 0.8452, r = 0.06681576 
+# no correlation
+```
+
+```{r Plot 15 year average flows and floods}
+dat <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment/raw/flows_floods_15yrcomparison.xlsx", sheet = "Sheet3")
+
+ggplot(dat, aes(x = Time, y = Values, fill = Type)) +
+  geom_col(position = "identity", alpha = 0.4) +
+  facet_wrap(~ Wetland_complex)
+
+ggplot(dat, aes(x = interaction(Type, Wetland_complex), y = Values, fill = Time)) +
+  geom_col(position = "identity", alpha = 0.4)
+```
+

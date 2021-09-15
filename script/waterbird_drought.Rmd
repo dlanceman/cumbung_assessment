@@ -25,14 +25,26 @@ Make sure to test assumptions!
 ```{r assumptions}
 ggplot(wbd, aes(Drought,Percentage_complex)) +
   geom_boxplot() +
-  geom_jitter()
+  geom_jitter() +
+  labs(x = "", y = "% Waterbirds in wetland complexes at the Great Cumbung Swamp") +
+  theme_classic() + 
+  theme(text = element_text(size = 13))
 
 ggplot(wbd, aes(Drought,Percentage_MDB)) +
   geom_boxplot() +
-  geom_jitter()
+  geom_jitter() +
+  labs(x = "", y = "% MDB waterbirds at the Great Cumbung Swamp") +
+  theme_classic() + 
+  theme(text = element_text(size = 15))
 
 ggqqplot(wbd, "Percentage_complex")
 ggqqplot(wbd, "Percentage_MDB")
+
+ggplot(wbd, aes(Percentage_complex)) +
+  geom_histogram(binwidth = 3)
+
+ggplot(wbd, aes(Percentage_MDB)) +
+  geom_histogram(binwidth = 0.5)
 ```
 
 ```{r t test}

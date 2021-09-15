@@ -73,14 +73,26 @@ ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
 
 ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
     geom_bar(position="stack", stat="identity") +
-  coord_flip() # make horizontal
+  coord_flip() + # make horizontal
+  scale_fill_manual(values=c("grey70", "#E31A1C", # red
+  "green4",
+  "#FF7F00", # orange
+  "black", "gold1",
+  "skyblue2", "#FB9A99", # lt pink
+  "palegreen2",
+  "#CAB2D6", # lt purple
+  "#FDBF6F", # lt orange
+  "khaki2",
+  "darkturquoise", "dodgerblue2",
+"yellow4", "brown"))
+
 
 # too busy
 #ggplot(vege_prop_1, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
 #    geom_bar(position="stack", stat="identity") +
 #  coord_flip()
 
-ggplot(vege_all, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
+ggplot(ANAE_all, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
     geom_bar(position = "stack", stat="identity") +
   coord_flip() # make horizontal
 ```
