@@ -16,16 +16,11 @@ library(tidyverse)
 library(readxl)
 library(viridis)
 
-ANAE_prop_5 <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "Major_>5%")
-
-ANAE_prop_1 <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "Major_>1%")
-
-ANAE_all <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "All_ANAE")
 
 
-vege_prop_5 <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "vege_5%")
+ANAE_prop_5 <- read_excel("raw/Wetland_vege_summs_newboundary.xlsx", sheet = "Major_>5%")
 
-vege_prop_1 <- read_excel("raw/Wetland_vege_components_summaries.xlsx", sheet = "state_vege_conglom_1%")
+ANAE_5_long <- pivot_longer(ANAE_prop_5, c("area.m2","area.ha"),"Values")
 ```
 
 
@@ -38,23 +33,21 @@ ANAE_prop_5$ANAE_TYPE <- factor(ANAE_prop_5$ANAE_TYPE,levels = c(
   "Lp1.1: Permanent lake",                             
   "Lt1.1: Temporary lake",
   "Rp1.4: Permanent lowland stream",
-  "Pp4.2: Permanent wetland",
-  "Pt4.1: Floodplain or riparian wetland",
+  #"Pp4.2: Permanent wetland",
+  #"Pt4.1: Floodplain or riparian wetland",
   "Pt2.2.2: Temporary sedge/grass/forb marsh",
   "Pt2.3.2: Freshwater meadow",
   "Pp2.1.2: Permanent tall emergent marsh",
   "Pt1.7.1: Lignum riparian zone or floodplain", 
   "Pt1.8.1: Riparian or floodplain shrubland",
   "Pt1.8.2: Temporary shrub swamp",
+  "Pt1.6.1: Riparian or floodplain woodland",
+  "Pt1.4.1: River cooba riparian zone or floodplain",
   "Pt1.3.1: Coolibah riparian zone or floodplain",
   "Pt1.6.2: Temporary woodland swamp",
   "Pt1.1.1: River red gum riparian zone or floodplain",
   "Pt1.2.1: Black box riparian zone or floodplain"
   ))
-
-ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
-    geom_bar(position="stack", stat="identity") +
-  coord_flip() 
 
 ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
     geom_bar(position="stack", stat="identity") +
@@ -69,7 +62,10 @@ ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
   "#FDBF6F", # lt orange
   "khaki2",
   "darkturquoise", "dodgerblue2",
-"yellow4", "brown"))
+"yellow4", "brown")) +
+  labs(y = "Percentage wetland area", x = "", fill = "ANAE Type") +
+  theme(text = element_text(size = 12)) +
+  theme(axis.text = element_text(size = 12))
 
 ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
     geom_bar(position="stack", stat="identity") +
@@ -84,83 +80,9 @@ ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) +
   "#FDBF6F", # lt orange
   "khaki2",
   "darkturquoise", "dodgerblue2",
-"yellow4", "brown"))
-
-
-# too busy
-#ggplot(vege_prop_1, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
-#    geom_bar(position="stack", stat="identity") +
-#  coord_flip()
-
-ggplot(ANAE_all, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
-    geom_bar(position = "stack", stat="identity") +
-  coord_flip() # make horizontal
+"yellow4", "brown")) +
+  labs(y = "Area (ha)", x = "", fill = "ANAE Type") +
+  theme(text = element_text(size = 12))   +
+  theme(axis.text = element_text(size = 12))
 ```
 
-```{r}
-# long to wide, area.ha
-ANAE_prop_5_wide <- spread(ANAE_prop_5[,-c(3,5)], Wetland, area.ha)
-
-view(vege_prop_5_wide)
-
-#write.csv(vege_prop_5_wide, file = "output/vege_summ_area_ha.csv")
-```
-
-
-
-
-# State vege data
-
-```{r Stacked bar plots}
-
-# reorder VegeType for vege_prop_5
-vege_prop_5$VegeType <- factor(vege_prop_5$VegeType,levels = c(
-  "Other",
-  "Chenopod low open shrubland - ephemeral partly derived forbland saline wetland",
-  "Wetland vegetation",
-  "Grassland wetland",
-  "Riparian Scrubs or Swampy Scrubs and Woodlands",
-  "Canegrass swamp tall grassland wetland",
-  "Lignum shrubland wetland", 
-  "Nitre Goosefoot shrubland wetland",
-  "River Red Gum - Black Box woodland wetland",
-  "Coolabah open woodland wetland",
-  "Coolabah - River Coobah - Lignum woodland wetland",
-  "River Red gum tall open forest or woodland wetland",
-  "Black Box woodland wetland"
-  ))
-
-ggplot(vege_prop_5, aes(fill=VegeType, y=wetland_prop, x=Wetland_ma)) +
-    geom_bar(position="stack", stat="identity") +
-  coord_flip() 
-
-ggplot(vege_prop_5, aes(fill=VegeType, y=wetland_prop, x=Wetland_ma)) +
-    geom_bar(position="stack", stat="identity") +
-  coord_flip() + # make horizontal
-  scale_fill_manual(values=c("grey70", "black", "gold1",
-  "skyblue2", "#FB9A99", # lt pink
-  "palegreen2",
-  "#CAB2D6", # lt purple
-  "#FDBF6F", # lt orange
-  "khaki2",
-  "darkturquoise", "dodgerblue2",
-"yellow4", "brown"))
-
-ggplot(vege_prop_5, aes(fill=VegeType, y=area.ha, x=Wetland_ma)) + 
-    geom_bar(position="stack", stat="identity") +
-  coord_flip() # make horizontal
-
-# 1%
-ggplot(vege_prop_1, aes(fill=VegeType, y=wetland_prop, x=Wetland_ma)) +
-    geom_bar(position="stack", stat="identity") +
-  coord_flip()
-```
-
-```{r}
-# long to wide, area.ha
-vege_prop_5_wide <- spread(vege_prop_5[,-c(3,4,6,7)], Wetland_ma, area.ha)
-
-view(vege_prop_5_wide)
-
-#write.csv(vege_prop_5_wide, file = "output/statevege_summ_area_ha.csv")
-```
