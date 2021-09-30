@@ -16,19 +16,16 @@ library(tidyverse)
 library(readxl)
 library(viridis)
 
-
-
 ANAE_prop_5 <- read_excel("raw/Wetland_vege_summs_newboundary.xlsx", sheet = "Major_>5%")
 
-ANAE_5_long <- pivot_longer(ANAE_prop_5, c("area.m2","area.ha"),"Values")
+ANAE_5_long <- pivot_longer(ANAE_prop_5, c("proportion","area.ha"),"Names")
 ```
 
 
 # MDB ANAE DATA
 ```{r Stacked bar plots}
-
-# reorder ANAE_TYPE for ANAE_prop_5
-ANAE_prop_5$ANAE_TYPE <- factor(ANAE_prop_5$ANAE_TYPE,levels = c( 
+# reorder ANAE_TYPE for ANAE_5_long
+ANAE_5_long$ANAE_TYPE <- factor(ANAE_5_long$ANAE_TYPE,levels = c( 
   "Other",
   "Lp1.1: Permanent lake",                             
   "Lt1.1: Temporary lake",
@@ -49,40 +46,36 @@ ANAE_prop_5$ANAE_TYPE <- factor(ANAE_prop_5$ANAE_TYPE,levels = c(
   "Pt1.2.1: Black box riparian zone or floodplain"
   ))
 
-ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=proportion, x=Wetland)) +
-    geom_bar(position="stack", stat="identity") +
-  coord_flip() + # make horizontal
-  scale_fill_manual(values=c("grey70", "#E31A1C", # red
-  "green4",
-  "#FF7F00", # orange
-  "black", "gold1",
-  "skyblue2", "#FB9A99", # lt pink
-  "palegreen2",
-  "#CAB2D6", # lt purple
-  "#FDBF6F", # lt orange
-  "khaki2",
-  "darkturquoise", "dodgerblue2",
-"yellow4", "brown")) +
-  labs(y = "Percentage wetland area", x = "", fill = "ANAE Type") +
-  theme(text = element_text(size = 12)) +
-  theme(axis.text = element_text(size = 12))
+facet_names <- setNames(c( "Percentage area", "Area (ha)"), unique(ANAE_5_long$Names))
+legend_order <- c("Lp1.1: Permanent lake", "Lt1.1: Temporary lake","Pp2.1.2: Permanent tall emergent marsh","Pt1.1.1: River red gum riparian zone or floodplain", "Pt1.2.1: Black box riparian zone or floodplain","Pt1.3.1: Coolibah riparian zone or floodplain","Pt1.4.1: River cooba riparian zone or floodplain","Pt1.7.1: Lignum riparian zone or floodplain","Pt1.6.1: Riparian or floodplain woodland","Pt1.6.2: Temporary woodland swamp","Pt1.8.1: Riparian or floodplain shrubland", "Pt1.8.2: Temporary shrub swamp","Pt2.2.2: Temporary sedge/grass/forb marsh","Pt2.3.2: Freshwater meadow", "Rp1.4: Permanent lowland stream", "Other")
+colour_order <- c("#E31A1C", # red
+"green4","skyblue2", "brown","yellow4","darkturquoise", "khaki2",
+"#FB9A99", # lt pink
+"palegreen2","dodgerblue2",
+"#FDBF6F", # lt orange
+"#FF7F00", # orange
+"black", "gold1", "#CAB2D6", # lt purple
+"grey70")
 
-ggplot(ANAE_prop_5, aes(fill=ANAE_TYPE, y=area.ha, x=Wetland)) + 
+ggplot(ANAE_5_long, aes(fill=ANAE_TYPE, y=value, x=Wetland)) +
+  #theme_classic() +
     geom_bar(position="stack", stat="identity") +
   coord_flip() + # make horizontal
-  scale_fill_manual(values=c("grey70", "#E31A1C", # red
-  "green4",
-  "#FF7F00", # orange
-  "black", "gold1",
-  "skyblue2", "#FB9A99", # lt pink
-  "palegreen2",
-  "#CAB2D6", # lt purple
-  "#FDBF6F", # lt orange
-  "khaki2",
-  "darkturquoise", "dodgerblue2",
-"yellow4", "brown")) +
-  labs(y = "Area (ha)", x = "", fill = "ANAE Type") +
-  theme(text = element_text(size = 12))   +
-  theme(axis.text = element_text(size = 12))
+    scale_fill_discrete(limits = legend_order, type = colour_order) +
+  labs(y = "", x = "", fill = "") +
+  facet_wrap(~Names, scales = "free_x",  labeller = as_labeller(facet_names), strip.position = "bottom") +
+  scale_x_discrete(labels = c('B','C','G','H','L','M','R','P','Y')) + 
+  theme(text = element_text(size = 14), 
+        axis.text = element_text(size = 14),
+        legend.text=element_text(size=14),
+        strip.text = element_text(size=14),
+        strip.placement = "outside",
+        legend.position="bottom",
+        strip.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.key=element_blank())   +
+  guides(fill=guide_legend(ncol=2, keywidth = 3))
+ 
 ```
 
