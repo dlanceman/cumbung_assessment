@@ -1,0 +1,42 @@
+---
+title: "trend_analysis"
+author: "Dana Lanceman"
+date: "10/1/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(Kendall)
+
+
+
+TS.Dis <- ts(data$Dis[1:30], 1983, 2012)
+
+
+```
+
+
+```{r waterbird}
+DAT <- read.csv("C:/Users/danal/UNSW/Great Cumbung Swamp - General/Rcode/sample_data.csv")
+
+M1 <- glm(Waterbird ~ Ln.Dis, data=DAT, family = poisson())
+summary(M1)
+M1 <- glm(Ln.Waterbird ~ Ln.Dis, data=DAT)
+summary(M1)
+
+plot(DAT$Ln.Waterbird, DAT$Ln.Dis)
+```
+
+
+
+```{r}
+MannKendall
+```
+

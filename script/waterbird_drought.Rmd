@@ -21,21 +21,26 @@ library(ggpubr)
 wbd <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment/raw/waterbird_derived_complex.xlsx", "percentages")
 ```
 
+
+
+
+
 Make sure to test assumptions!
+
+
+
+
 ```{r assumptions}
 ggplot(wbd, aes(Drought,Percentage_complex)) +
   geom_boxplot() +
   geom_jitter() +
-  labs(x = "", y = "% Waterbirds in wetland complexes at the Great Cumbung Swamp") +
-  theme_classic() + 
-  theme(text = element_text(size = 13))
-
-ggplot(wbd, aes(Drought,Percentage_MDB)) +
-  geom_boxplot() +
-  geom_jitter() +
-  labs(x = "", y = "% MDB waterbirds at the Great Cumbung Swamp") +
-  theme_classic() + 
-  theme(text = element_text(size = 15))
+  labs(x = "", y = "% Waterbirds at  Great Cumbung Swamp") +
+  scale_x_discrete(labels = c('Drought','Non-drought')) +
+  theme_bw() + 
+  theme(text = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),)
 
 ggqqplot(wbd, "Percentage_complex")
 ggqqplot(wbd, "Percentage_MDB")
@@ -49,6 +54,5 @@ ggplot(wbd, aes(Percentage_MDB)) +
 
 ```{r t test}
 wbd %>% t_test(Percentage_complex~Drought)
-wbd %>% t_test(Percentage_MDB~Drought)
 ```
 

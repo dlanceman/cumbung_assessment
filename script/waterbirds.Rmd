@@ -9,32 +9,206 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
 ```
 
 ```{r setup}
 library(tidyverse)
 library(readxl)
 library(viridis)
+library(ggeffects)
 
-wb <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment/raw/waterbird_ecosystem_complex_2.xlsx", "long_alldata")
-
-head(wb)
+c <- read_excel("raw/waterbird_trends.xlsx", "cumbung") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+b <- read_excel("raw/waterbird_trends.xlsx", "booligal") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+g <- read_excel("raw/waterbird_trends.xlsx", "gwydir") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+m <- read_excel("raw/waterbird_trends.xlsx", "macquarie") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+r <- read_excel("raw/waterbird_trends.xlsx", "riverland") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+y <- read_excel("raw/waterbird_trends.xlsx", "yantabulla") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+p <- read_excel("raw/waterbird_trends.xlsx", "paroo") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+h <- read_excel("raw/waterbird_trends.xlsx", "hattah") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
+l <- read_excel("raw/waterbird_trends.xlsx", "lowbidgee") %>% 
+  mutate(ln.dis = log(Discharge),
+         ln.bird = log(Waterbirds))
 ```
 
-```{r scatterplots - all data}
-ggplot(wb, aes(x=rainfall_log, y=Waterbirds_log, fill = Wetland)) +
-  geom_point(aes(color=Wetland)) 
 
-ggplot(wb, aes(x=Flows_3mos_log, y=Waterbirds_log, fill = Wetland)) +
-  geom_point(aes(color=Wetland)) 
+# Generalised linear models
 
-ggplot(wb, aes(x=Flows_6mos_log, y=Waterbirds_log, fill = Wetland)) +
-  geom_point(aes(color=Wetland)) 
-
-ggplot(wb, aes(x=Flows_12mos_log, y=Waterbirds_log, fill = Wetland)) +
-  geom_point(aes(color=Wetland)) 
+Assumptions:
+- Independance of each data points
+- Correct distribution of the residuals (normal distribution of residuals)
+- Correct specification of the variance structure (equal variances of residuals)
+- Linear relationship between the response and the linear predictor
 
 
+```{r cumbung}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=c)
+summary(M1)
+# p = 0.0179
 
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(c$ln.bird, c$ln.dis) # linear relationship
+# assumptions ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
 ```
 
+```{r booligal}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=b)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(b$ln.bird, b$ln.dis) # linear relationship
+# assumptions ok, one outlier (2010 = 389000 waterbirds)
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r gwydir}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=g)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(g$ln.bird, g$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r hattah}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=h)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(h$ln.bird, h$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r lowbidgee}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=l)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(l$ln.bird, l$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r macquarie}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=m)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(m$ln.bird, m$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r paroo}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=p)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(p$ln.bird, p$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r riverland}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=r)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(r$ln.bird, r$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
+
+```{r yantabulla}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.dis, data=y)
+summary(M1)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(y$ln.bird, y$ln.dis) # linear relationship
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+```
