@@ -9,34 +9,297 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
+knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
 
-
-```{r cars}
+# load packages
+library(readxl)
+library(tidyverse)
 library(Kendall)
+library(ggeffects)
+library(zoo)
 
+# daily flow/flood data
+# guess_max lets excel use more rows to decide the data type of the data (missing data makes it think the data type is logical otherwise)
+cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) %>% 
+  mutate(l.Four_dis = log(Four_dis + 1),
+         l.Four_lev = log(Four_lev + 1),
+         l.Corr_dis = log(Corr_dis + 1),
+         l.Corr_lev = log(Corr_lev + 1),
+         l.Bool_dis = log(Bool_dis + 1),
+         l.Bool_lev = log(Bool_lev + 1))
+hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 10000)
+lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 10000)
+yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 10000) %>%
+          mutate(l.Tur_lev = log(Tur_lev + 1),
+                 l.Tur_dis = log(Tur_dis + 1),
+                 l.Wyan_dis = log(Wyan_dis + 1),
+                 l.Wyan_lev = log(Wyan_lev) + 1) 
+rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 10000)
 
+# data for correlating inundation and Booligal discharge
+cinun <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung_inun") %>% 
+  mutate(l.Bool_dis = log(Bool_dis),
+         l.area.km2 = log(area.km2))
 
-TS.Dis <- ts(data$Dis[1:30], 1983, 2012)
-
-
+# trend analysis data
+ctrend <- read_excel("raw/trend_analysis.xlsx",sheet = "cumbung")
+btrend <- read_excel("raw/trend_analysis.xlsx",sheet = "booligal")
+gtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "gwydir")
+htrend <- read_excel("raw/trend_analysis.xlsx",sheet = "hattah")
+ltrend <- read_excel("raw/trend_analysis.xlsx",sheet = "lowbidgee")
+mtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "macquarie")
+ptrend <- read_excel("raw/trend_analysis.xlsx",sheet = "paroo")
+rtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "riverland")
+ytrend <- read_excel("raw/trend_analysis.xlsx",sheet = "yantabulla")
 ```
 
 
-```{r waterbird}
-DAT <- read.csv("C:/Users/danal/UNSW/Great Cumbung Swamp - General/Rcode/sample_data.csv")
 
-M1 <- glm(Waterbird ~ Ln.Dis, data=DAT, family = poisson())
-summary(M1)
-M1 <- glm(Ln.Waterbird ~ Ln.Dis, data=DAT)
-summary(M1)
-
-plot(DAT$Ln.Waterbird, DAT$Ln.Dis)
-```
-
-
+# Fill small data gaps with na.approx (zoo)
 
 ```{r}
-MannKendall
+cflow <- cflow %>% mutate(Bool_dis = na.approx(Bool_dis, maxgap = 30, na.rm = TRUE),
+                          Bool_lev = na.approx(Bool_lev, maxgap = 30, na.rm = TRUE),
+                          Corr_dis = na.approx(Corr_dis, maxgap = 30, na.rm = TRUE),
+                          Corr_lev = na.approx(Corr_lev, maxgap = 30, na.rm = TRUE),
+                          Four_dis = na.approx(Four_dis, maxgap = 30, na.rm = TRUE),
+                          Four_lev = na.approx(Four_lev, maxgap = 30, na.rm = TRUE))
+write.csv(cflow, file = "output/filledcumbungflows.csv")
+
 ```
+
+
+
+
+
+# Correlate flow/flood data
+
+
+```{r cumbung}
+# generalised linear model
+M1 <- glm(l.Bool_dis ~ l.Four_dis, data=cflow, na.action = na.omit)
+summary(M1)
+cor.test(cflow$l.Bool_dis, cflow$l.Four_dis)
+# 
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+# without log transformation, looks terrible
+# still really weird qqplot with log-log transformation
+par(mfrow = c(1, 1))
+ggplot(cflow, aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# linear relationship assumption is fine
+
+# predict
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Wyan_dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
+```
+
+
+
+
+```{r yantabulla}
+# generalised linear model
+#M1 <- glm(Wyan_dis ~ Tur_dis, data=yflow, na.action = na.omit)
+M1 <- glm(l.Wyan_dis ~ l.Tur_dis, data=yflow, na.action = na.omit)
+summary(M1)
+cor.test(yflow$l.Wyan_dis, yflow$l.Tur_dis)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+par(mfrow = c(1, 1))
+ggplot(yflow, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# normality is fixed with log-log relationship
+# equal variances and linearity are good too
+
+# predict
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Tur_dis[all]"))
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
+```
+
+
+```{r Cumbung Inundation area vs Booligal discharge}
+# generalised linear model
+M1 <- glm(l.Bool_dis ~ l.area.km2, data=cinun)
+summary(M1)
+cor.test(cinun$l.Bool_dis, cinun$l.area.km2)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality
+# heavy tailed without transformed data
+# slightly light tailed with log-log relationship but looks OK, variances OK too
+par(mfrow = c(1, 1))
+ggplot(cinun, aes(l.Bool_dis, l.area.km2)) +
+  geom_point() # test for linear relationship
+# log-log relationship looks roughly linear
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("l.area.km2[all]")) # this must specify the second term listed in glm
+
+plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="log Booligal discharge",y="log Cumbung inundation area",title="")
+
+# better way to back-transform?
+# predict l.area.km2 based on l.Bool_dis relationship
+cinun <- cinun %>% mutate(pred.l.area.km2 = (l.Bool_dis*1.00212 - 3.16356),
+                          pred.area.km2 = exp(pred.l.area.km2))
+ggplot(cinun, aes(area.km2, pred.area.km2)) +
+  geom_point()
+```
+
+
+
+# Time series analysis
+
+```{r cumbung}
+TS.Dis <- ts(ctrend$Discharge[1:75], 1946, 2020)
+TS.Inun <- ts(ctrend$Inun_area[42:75], 1987, 2020)
+TS.Flood <- ts(ctrend$Flood_days[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Inun)
+MannKendall(TS.Flood)
+
+ggplot(ctrend, aes(x = Year, y = Inun_area)) +
+  geom_line()
+
+ggplot(ctrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(ctrend, aes(x = Year, y = Flood_days)) +
+  geom_line()
+```
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
+
+
+```{r booligal}
+TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+MannKendall(TS.Flood)
+
+ggplot(btrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+ggplot(btrend, aes(x = Year, y = Flood)) +
+  geom_line()
+```
+
 
