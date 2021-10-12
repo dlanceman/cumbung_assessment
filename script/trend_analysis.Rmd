@@ -10,32 +10,50 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
+```
 
-# load packages
+
+```{r load packages}
 library(readxl)
 library(tidyverse)
 library(Kendall)
 library(ggeffects)
 library(zoo)
 
-# daily flow/flood data
-# guess_max lets excel use more rows to decide the data type of the data (missing data makes it think the data type is logical otherwise)
-cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) %>% 
-  mutate(l.Four_dis = log(Four_dis + 1),
-         l.Four_lev = log(Four_lev + 1),
-         l.Corr_dis = log(Corr_dis + 1),
-         l.Corr_lev = log(Corr_lev + 1),
-         l.Bool_dis = log(Bool_dis + 1),
-         l.Bool_lev = log(Bool_lev + 1))
-hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 10000)
-lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 10000)
-yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 10000) %>%
-          mutate(l.Tur_lev = log(Tur_lev + 1),
-                 l.Tur_dis = log(Tur_dis + 1),
-                 l.Wyan_dis = log(Wyan_dis + 1),
-                 l.Wyan_lev = log(Wyan_lev) + 1) 
-rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 10000)
+options(java.parameters = "-Xmx8000m") 
+# the above increases the number of MB of ram that java can heap in order for xlsx package to run properly and save large files into an excel file. This line needs to be run before the xlsx package is loaded in. The number 8000 (MB) can be changed to whatever number you require.
+library(xlsx)
+```
 
+
+```{r get daily flow/flood data}
+# guess_max lets excel use more rows to decide the data type of the data (missing data makes it think the data type is logical otherwise)
+
+cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) 
+# check all data types are numerical
+str(cflow)
+
+hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 30000) 
+str(hflow)
+
+lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 30000) 
+str(lflow)
+
+yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 30000)
+str(yflow)
+
+rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 30000)
+str(rflow)
+
+gflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "gwydir", guess_max = 30000)
+str(gflow)
+
+mflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "macquarie", guess_max = 30000) 
+str(mflow)
+```
+
+
+```{r get other data}
 # data for correlating inundation and Booligal discharge
 cinun <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung_inun") %>% 
   mutate(l.Bool_dis = log(Bool_dis),
@@ -55,20 +73,99 @@ ytrend <- read_excel("raw/trend_analysis.xlsx",sheet = "yantabulla")
 
 
 
-# Fill small data gaps with na.approx (zoo)
+# Fill small data gaps in flow/flood with na.approx (zoo)
 
-```{r}
-cflow <- cflow %>% mutate(Bool_dis = na.approx(Bool_dis, maxgap = 30, na.rm = TRUE),
-                          Bool_lev = na.approx(Bool_lev, maxgap = 30, na.rm = TRUE),
-                          Corr_dis = na.approx(Corr_dis, maxgap = 30, na.rm = TRUE),
-                          Corr_lev = na.approx(Corr_lev, maxgap = 30, na.rm = TRUE),
-                          Four_dis = na.approx(Four_dis, maxgap = 30, na.rm = TRUE),
-                          Four_lev = na.approx(Four_lev, maxgap = 30, na.rm = TRUE))
-write.csv(cflow, file = "output/filledcumbungflows.csv")
+```{r fill gaps and log transform data}
+cflow <- cflow %>% mutate(Bool_dis = na.approx(Bool_dis, maxgap = 10, na.rm = TRUE),
+                          Bool_lev = na.approx(Bool_lev, maxgap = 10, na.rm = TRUE),
+                          Corr_dis = na.approx(Corr_dis, maxgap = 10, na.rm = TRUE),
+                          Corr_lev = na.approx(Corr_lev, maxgap = 10, na.rm = TRUE),
+                          Four_dis = na.approx(Four_dis, maxgap = 10, na.rm = TRUE),
+                          Four_lev = na.approx(Four_lev, maxgap = 10, na.rm = TRUE),
+                          l.Four_dis = log(Four_dis + 1),
+                          l.Four_lev = log(Four_lev + 1),
+                          l.Corr_dis = log(Corr_dis + 1),
+                          l.Corr_lev = log(Corr_lev + 1),
+                          l.Bool_dis = log(Bool_dis + 1),
+                          l.Bool_lev = log(Bool_lev + 1))
 
+hflow <- hflow %>% mutate(Bar_lev = na.approx(Bar_lev, maxgap = 10, na.rm = TRUE),
+                          Bar_dis = na.approx(Bar_dis, maxgap = 10, na.rm = TRUE),
+                          Col_lev = na.approx(Col_lev, maxgap = 10, na.rm = TRUE),
+                          Col_dis = na.approx(Col_dis, maxgap = 10, na.rm = TRUE),
+                          l.Bar_lev = log(Bar_lev + 1),
+                          l.Bar_dis = log(Bar_dis + 1),
+                          l.Col_lev = log(Col_lev + 1),
+                          l.Col_dis = log(Col_dis + 1))
+
+lflow <- lflow %>% mutate(Hay_dis = na.approx(Hay_dis, maxgap = 10, na.rm = TRUE),
+                          Red_lev = na.approx(Red_lev, maxgap = 10, na.rm = TRUE),
+                          Red_dis = na.approx(Red_dis, maxgap = 10, na.rm = TRUE),
+                          Hay_lev = na.approx(Hay_lev, maxgap = 10, na.rm = TRUE),
+                          l.Hay_dis = log(Hay_dis + 1),
+                          l.Red_lev = log(Red_lev + 1),
+                          l.Red_dis = log(Red_dis + 1),
+                          l.Hay_lev = log(Hay_lev + 1))
+
+gflow <- gflow %>% mutate(Yarr_lev = na.approx(Yarr_lev, maxgap = 10, na.rm = TRUE),
+                          Yarr_dis = na.approx(Yarr_dis, maxgap = 10, na.rm = TRUE),
+                          l.Yarr_dis = log(Yarr_dis + 1),
+                          l.Yarr_lev = log(Yarr_lev + 1))
+
+mflow <- mflow %>% mutate(ox_lev = na.approx(ox_lev, maxgap = 10, na.rm = TRUE),
+                          ox_dis = na.approx(ox_dis, maxgap = 10, na.rm = TRUE),
+                          l.ox_dis = log(ox_dis + 1),
+                          l.ox_lev = log(ox_lev + 1))
+
+rflow <- rflow %>% mutate(Flows_dis = na.approx(Flows_dis, maxgap = 10, na.rm = TRUE),
+                          M10_lev = na.approx(M10_lev, maxgap = 10, na.rm = TRUE),
+                          M10_dis = na.approx(M10_dis, maxgap = 10, na.rm = TRUE),
+                          RenPS_lev = na.approx(RenPS_lev, maxgap = 10, na.rm = TRUE),
+                          l.Flows_dis = log(Flows_dis + 1),
+                          l.M10_lev = log(M10_lev + 1),
+                          l.M10_dis = log(M10_dis + 1),
+                          l.RenPS_lev = log(RenPS_lev + 1))
+
+yflow <- yflow %>% mutate(Wyan_lev = na.approx(Wyan_lev, maxgap = 10, na.rm = TRUE),
+                          Wyan_dis = na.approx(Wyan_dis, maxgap = 10, na.rm = TRUE),
+                          Tur_lev = na.approx(Tur_lev, maxgap = 10, na.rm = TRUE),
+                          Tur_dis = na.approx(Tur_dis, maxgap = 10, na.rm = TRUE),
+                          l.Tur_lev = log(Tur_lev + 1),
+                          l.Tur_dis = log(Tur_dis + 1),
+                          l.Wyan_dis = log(Wyan_dis + 1),
+                          l.Wyan_lev = log(Wyan_lev + 1)) 
 ```
 
 
+```{r save these filled data into a new excel workbook}
+wb = createWorkbook()
+
+sheet = createSheet(wb, "cumbung")
+addDataFrame(cflow, sheet=sheet, startColumn=1)
+
+sheet = createSheet(wb, "hattah")
+addDataFrame(hflow, sheet=sheet, startColumn=1)
+
+sheet = createSheet(wb, "gwydir")
+addDataFrame(gflow, sheet=sheet, startColumn=1)
+
+sheet = createSheet(wb, "macquarie")
+addDataFrame(mflow, sheet=sheet, startColumn=1)
+
+sheet = createSheet(wb, "lowbidgee")
+addDataFrame(lflow, sheet=sheet, startColumn=1)
+
+sheet = createSheet(wb, "riverland")
+addDataFrame(rflow, sheet=sheet, startColumn=1)
+
+sheet = createSheet(wb, "yantabulla")
+addDataFrame(yflow, sheet=sheet, startColumn=1)
+
+saveWorkbook(wb, "output/filledflows.xlsx")
+# this process fails when "row.names = FALSE" is specified, so currently outputs with rownames (1-n)
+
+#write.csv(cflow, file = "output/fillflow/filledcumbungflows.csv")
+```
 
 
 
@@ -93,9 +190,33 @@ ggplot(cflow, aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) +
 # linear relationship assumption is fine
 
 # predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Wyan_dis[all]"))
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Four_dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
+plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
+
+
+
+
+# generalised linear model
+M1 <- glm(l.Bool_lev ~ l.Four_lev, data=cflow, na.action = na.omit)
+summary(M1)
+cor.test(cflow$l.Bool_lev, cflow$l.Four_lev)
+# 
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+# without log transformation, looks terrible
+# still really weird qqplot with log-log transformation
+par(mfrow = c(1, 1))
+ggplot(cflow, aes(l.Bool_lev, l.Four_lev), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# linear relationship assumption is fine
+
+# predict
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Four_lev[all]"))
+
+plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
 ```
 
 
@@ -120,8 +241,55 @@ ggplot(yflow, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
 # predict
 ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Tur_dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
+plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
+
+
+
+# generalised linear model
+M1 <- glm(Wyan_lev ~ Tur_lev, data=yflow, na.action = na.omit)
+#M1 <- glm(l.Wyan_lev ~ l.Tur_lev, data=yflow, na.action = na.omit)
+summary(M1)
+cor.test(yflow$l.Wyan_lev, yflow$l.Tur_lev)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+par(mfrow = c(1, 1))
+ggplot(yflow, aes(l.Wyan_lev, l.Tur_lev), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# normality is better with log-log relationship but still not great
+# equal variances and linearity are good
+
+# predict
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Tur_lev[all]"))
+
+plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
 ```
+
+
+
+```{r riverland}
+# generalised linear model
+M1 <- glm(l.M10_dis ~ l.Tur_dis, data=rflow, na.action = na.omit)
+summary(M1)
+cor.test(rflow$l.Wyan_dis, rflow$l.Tur_dis)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+par(mfrow = c(1, 1))
+ggplot(rflow, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# normality is fixed with log-log relationship
+# equal variances and linearity are good too
+
+# predict
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Tur_dis[all]"))
+
+plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
+```
+
+
 
 
 ```{r Cumbung Inundation area vs Booligal discharge}
