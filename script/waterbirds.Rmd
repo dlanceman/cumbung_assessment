@@ -17,6 +17,7 @@ library(tidyverse)
 library(readxl)
 library(viridis)
 library(ggeffects)
+library(ggpubr)
 
 c <- read_excel("raw/waterbird_trends.xlsx", "cumbung") %>% 
   mutate(ln.dis = log(Discharge),
@@ -57,6 +58,22 @@ Assumptions:
 - Linear relationship between the response and the linear predictor
 
 
+```{r function for plotting}
+birdplot <- function(predict_data, title){
+  plot(predict_data, facet = FALSE, colors = "hero", ci = T, dot.alpha = 1, dot.size = 5, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + 
+  labs(x="",y="",title=title) +
+  theme_bw() +
+  geom_line(size = 1.2) +
+  theme(text = element_text(size = 32), # change font size
+        axis.text = element_text(size = 28),
+        panel.grid.major = element_blank(), # remove grid lines
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5)) # centre title
+}
+```
+
+
+
 ```{r cumbung}
 # generalised linear model
 M1 <- glm(ln.bird ~ ln.dis, data=c)
@@ -74,7 +91,8 @@ plot(c$ln.dis,c$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+cplot <- birdplot(ggemmeans.Inun, "Great Cumbung Swamp*")
+cplot
 ```
 
 ```{r booligal}
@@ -94,7 +112,8 @@ plot(b$ln.dis, b$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+bplot <- birdplot(ggemmeans.Inun, "Booligal Wetlands*")
+bplot
 ```
 
 ```{r gwydir}
@@ -114,7 +133,8 @@ plot(g$ln.dis, g$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+gplot <- birdplot(ggemmeans.Inun, "Gwydir Wetlands")
+gplot
 ```
 
 ```{r hattah}
@@ -134,7 +154,8 @@ plot(h$ln.dis,h$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+hplot <- birdplot(ggemmeans.Inun, "Hattah Lakes")
+hplot
 ```
 
 ```{r lowbidgee}
@@ -154,7 +175,8 @@ plot(l$ln.dis,l$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+lplot <- birdplot(ggemmeans.Inun, "Lowbidgee Wetlands*")
+lplot
 ```
 
 ```{r macquarie}
@@ -174,7 +196,8 @@ plot(m$ln.dis,m$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+mplot <- birdplot(ggemmeans.Inun, "Macquarie Marshes*")
+mplot
 ```
 
 ```{r paroo}
@@ -194,7 +217,8 @@ plot(p$ln.dis, p$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+pplot <- birdplot(ggemmeans.Inun, "Paroo Overflow Swamps")
+pplot
 ```
 
 ```{r riverland}
@@ -214,7 +238,9 @@ plot(r$ln.dis,r$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+rplot <- birdplot(ggemmeans.Inun, "Murray Riverland Wetlands") +
+  theme(title = element_text(size = 28)) # decrease title size for Murray Riverland
+rplot
 ```
 
 ```{r yantabulla}
@@ -234,5 +260,22 @@ plot(y$ln.dis, y$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Discharge",y="Waterbirds",title="")
+yplot <- birdplot(ggemmeans.Inun, "Yantabulla Swamps")
+yplot
 ```
+
+
+
+```{r put plots together}
+# export at 2100 x 2700 
+
+bird <- ggarrange(cplot, bplot, lplot, mplot, gplot, yplot, pplot, rplot, hplot,
+          #labels = c("A*", "B*", "C*", "D*", "E", "F", "G", "H", "I"),
+          ncol = 3, nrow = 3,
+          #hjust = -0.5, # moves plot labels right
+          font.label = list(size = 40))
+
+annotate_figure(bird, bottom = text_grob("Discharge (log-transformed)",  size = 60, just = "bottom"), left = text_grob("Waterbird abundance (log-transformed)", size = 60, rot = 90)) # rotate 90 degrees
+# just = "bottom" helps text not be cut off
+```
+
