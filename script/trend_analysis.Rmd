@@ -28,27 +28,28 @@ library(xlsx)
 
 ```{r get daily flow/flood data}
 # guess_max lets excel use more rows to decide the data type of the data (missing data makes it think the data type is logical otherwise)
+# add a 'wateryear' column
 
-cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) 
+cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) %>% mutate(wateryear = format(as.Date(`Date and time`, format="%d/%m/%Y"),"%Y"))
 # check all data types are numerical
 str(cflow)
 
-hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 30000) 
+hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 30000) %>% mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y")) 
 str(hflow)
 
-lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 30000) 
+lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
 str(lflow)
 
-yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 30000)
+yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
 str(yflow)
 
-rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 30000)
+rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
 str(rflow)
 
-gflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "gwydir", guess_max = 30000)
+gflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "gwydir", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
 str(gflow)
 
-mflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "macquarie", guess_max = 30000) 
+mflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "macquarie", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
 str(mflow)
 ```
 
@@ -118,12 +119,8 @@ mflow <- mflow %>% mutate(ox_lev = na.approx(ox_lev, maxgap = 10, na.rm = TRUE),
                           l.ox_lev = log(ox_lev + 1))
 
 rflow <- rflow %>% mutate(Flows_dis = na.approx(Flows_dis, maxgap = 10, na.rm = TRUE),
-                          M10_lev = na.approx(M10_lev, maxgap = 10, na.rm = TRUE),
-                          M10_dis = na.approx(M10_dis, maxgap = 10, na.rm = TRUE),
                           RenPS_lev = na.approx(RenPS_lev, maxgap = 10, na.rm = TRUE),
                           l.Flows_dis = log(Flows_dis + 1),
-                          l.M10_lev = log(M10_lev + 1),
-                          l.M10_dis = log(M10_dis + 1),
                           l.RenPS_lev = log(RenPS_lev + 1))
 
 yflow <- yflow %>% mutate(Wyan_lev = na.approx(Wyan_lev, maxgap = 10, na.rm = TRUE),
@@ -137,6 +134,7 @@ yflow <- yflow %>% mutate(Wyan_lev = na.approx(Wyan_lev, maxgap = 10, na.rm = TR
 ```
 
 
+Don't need to run this every time!
 ```{r save these filled data into a new excel workbook}
 wb = createWorkbook()
 
@@ -169,12 +167,214 @@ saveWorkbook(wb, "output/filledflows.xlsx")
 
 
 
-# Correlate flow/flood data
+
+```{r summarise data per year and log transform annual data}
+cflow.WY <- cflow %>% group_by(wateryear) %>% summarise(Bool_dis = mean(Bool_dis, na.rm = TRUE), Four_dis = mean(Four_dis, na.rm = TRUE), Bool_lev = mean(Bool_lev, na.rm = TRUE), Four_lev = mean(Four_lev, na.rm = TRUE)) %>% 
+  mutate(l.Four_dis = log(Four_dis + 1),
+        l.Four_lev = log(Four_lev + 1),
+        l.Bool_dis = log(Bool_dis + 1),
+        l.Bool_lev = log(Bool_lev + 1))
+
+gflow.WY <- gflow %>% group_by(wateryear) %>% summarise(Yarr_dis = mean(Yarr_dis, na.rm = TRUE), Yarr_lev = mean(Yarr_lev, na.rm = TRUE)) %>% 
+  mutate(l.Yarr_dis = log(Yarr_dis + 1),
+         l.Yarr_lev = log(Yarr_lev + 1))
+
+hflow.WY <- hflow %>% group_by(wateryear) %>% summarise(Bar_dis = mean(Bar_dis, na.rm = TRUE), Bar_lev = mean(Bar_lev, na.rm = TRUE), Col_dis = mean(Col_dis, na.rm = TRUE), Col_lev = mean(Col_lev, na.rm = TRUE)) %>% 
+  mutate(l.Bar_lev = log(Bar_lev + 1),
+         l.Bar_dis = log(Bar_dis + 1),
+         l.Col_lev = log(Col_lev + 1),
+         l.Col_dis = log(Col_dis + 1))
+
+lflow.WY <- lflow %>% group_by(wateryear) %>% summarise(Hay_dis = mean(Hay_dis, na.rm = TRUE), Hay_lev = mean(Hay_lev, na.rm = TRUE), Red_lev = mean(Red_lev, na.rm = TRUE), Red_dis = mean(Red_dis, na.rm = TRUE)) %>% 
+  mutate(l.Hay_dis = log(Hay_dis + 1),
+         l.Red_lev = log(Red_lev + 1),
+         l.Red_dis = log(Red_dis + 1),
+         l.Hay_lev = log(Hay_lev + 1))
+
+mflow.WY <- mflow %>% group_by(wateryear) %>% summarise(ox_lev = mean(ox_lev, na.rm = TRUE), ox_dis = mean(ox_dis, na.rm = TRUE)) %>% 
+  mutate(l.ox_dis = log(ox_dis + 1),
+         l.ox_lev = log(ox_lev + 1))
+
+rflow.WY <- rflow %>% group_by(wateryear) %>% summarise(Flows_dis = mean(Flows_dis, na.rm = TRUE), RenPS_lev = mean(RenPS_lev, na.rm = TRUE)) %>% 
+  mutate(l.Flows_dis = log(Flows_dis + 1),
+         l.RenPS_lev = log(RenPS_lev + 1))
+
+yflow.WY <- yflow %>% group_by(wateryear) %>% summarise(Wyan_lev = mean(Wyan_lev, na.rm = TRUE), Wyan_dis = mean(Wyan_dis, na.rm = TRUE), Tur_lev = mean(Tur_lev, na.rm = TRUE), Tur_dis = mean(Tur_dis, na.rm = TRUE)) %>% 
+  mutate(l.Tur_lev = log(Tur_lev + 1),
+         l.Tur_dis = log(Tur_dis + 1),
+         l.Wyan_dis = log(Wyan_dis + 1),
+         l.Wyan_lev = log(Wyan_lev + 1))
+```
 
 
-```{r cumbung}
+# GLMs for correlating annual data - discharge
+
+```{r Cumbung}
 # generalised linear model
-M1 <- glm(l.Bool_dis ~ l.Four_dis, data=cflow, na.action = na.omit)
+M1 <- glm(sqrt(Four_dis) ~ sqrt(Bool_dis), data=cflow.WY, na.action = na.omit)
+M2 <- glm(Four_dis ~ Bool_dis, data=cflow.WY, na.action = na.omit)
+M3 <- glm(l.Four_dis ~ l.Bool_dis, data=cflow.WY, na.action = na.omit)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+plot(M2) 
+plot(M3) 
+par(mfrow = c(1, 1))
+ggplot(cflow.WY, aes(sqrt(Bool_dis), sqrt(Four_dis)), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+ggplot(cflow.WY, aes(Bool_dis, Four_dis), na.rm = TRUE) +
+  geom_point()
+ggplot(cflow.WY, aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) +
+  geom_point()
+
+# not happy with normality/equal variance assumptions for any
+# linear relationship - kind of linear, but also a bit curved esp log-log
+
+
+
+
+summary(M1)
+cor.test(cflow.WY$Bool_dis, cflow.WY$Four_dis)
+
+# predict
+cflow.WY$predict <- predict(M1, cflow.WY)
+ggemmeans.Dis <- ggemmeans(M1, terms = c("Bool_dis[all]"))
+
+plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
+```
+
+```{r Hattah lakes}
+# generalised linear model
+M1 <- glm(sqrt(Col_dis) ~ sqrt(Bar_dis), data=hflow.WY, na.action = na.omit)
+M2 <- glm(Col_dis ~ Bar_dis, data=hflow.WY, na.action = na.omit)
+M3 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow.WY, na.action = na.omit)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+plot(M2)
+plot(M3)
+par(mfrow = c(1, 1))
+ggplot(hflow.WY, aes(sqrt(Bar_dis), sqrt(Col_dis)), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+ggplot(hflow.WY, aes(Bar_dis, Col_dis), na.rm = TRUE) +
+  geom_point()
+ggplot(hflow.WY, aes(l.Bar_dis, l.Col_dis), na.rm = TRUE) +
+  geom_point()
+
+# log-transform makes normality and equal variance assumptions ok
+# linearity is great with log-transformations
+# therefore use log-transformed data
+
+summary(M3)
+cor.test(hflow.WY$l.Bar_dis, hflow.WY$l.Col_dis)
+
+# predict
+hflow.WY$predict.l <- predict(M3, hflow.WY) 
+# create a variable that is predicted log colignan dis
+hflow.WY$predict <- exp(hflow.WY$predict.l) - 1
+# back transform 
+plot(hflow.WY$Col_dis ~ hflow.WY$predict)
+# visualise relationship between original and predicted colignan discharge
+
+# plot correlation
+ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Bar_dis[all]"))
+plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Barham Discharge (log)",y="Colignan Discharge (log)",title="")
+
+# export
+#write.csv(hflow.WY, "output/hattah_pred.csv")
+```
+
+```{r Lowbidgee}
+# generalised linear model
+M1 <- glm(sqrt(Red_dis) ~ sqrt(Hay_dis), data=lflow.WY, na.action = na.omit)
+M2 <- glm(Red_dis ~ Hay_dis, data=lflow.WY, na.action = na.omit)
+M3 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow.WY, na.action = na.omit)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+plot(M2)
+plot(M3)
+par(mfrow = c(1, 1))
+ggplot(lflow.WY, aes(sqrt(Hay_dis), sqrt(Red_dis)), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+ggplot(lflow.WY, aes(Hay_dis, Red_dis), na.rm = TRUE) +
+  geom_point()
+ggplot(lflow.WY, aes(l.Hay_dis, l.Red_dis), na.rm = TRUE) +
+  geom_point()
+
+# log-transform makes normality and equal variance assumptions good
+# linearity fine in all cases
+# therefore use log-transformed data
+
+summary(M3)
+cor.test(lflow.WY$l.Hay_dis, lflow.WY$l.Red_dis)
+
+# predict
+lflow.WY$predict.l <- predict(M3, lflow.WY)
+# create a variable that is predicted log redbank dis
+lflow.WY$predict <- exp(lflow.WY$predict.l) - 1
+# back transform 
+plot(lflow.WY$Red_dis ~ lflow.WY$predict)
+# visualise relationship between original and predicted colignan discharge
+
+# visualise correlation
+ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Hay_dis[all]"))
+
+plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge (log)",y="Redbank Discharge (log)",title="")
+
+# export
+#write.csv(lflow.WY, "output/lowbidgee_pred.csv")
+```
+
+
+```{r}
+# generalised linear model
+M1 <- glm(sqrt(Tur_dis) ~ sqrt(Wyan_dis), data=yflow.WY, na.action = na.omit)
+M2 <- glm(Tur_dis ~ Wyan_dis, data=yflow.WY, na.action = na.omit)
+M3 <- glm(l.Tur_dis ~ l.Wyan_dis, data=yflow.WY, na.action = na.omit)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+plot(M2)
+plot(M3)
+par(mfrow = c(1, 1))
+ggplot(yflow.WY, aes(sqrt(Wyan_dis), sqrt(Tur_dis)), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+ggplot(yflow.WY, aes(Wyan_dis, Tur_dis), na.rm = TRUE) +
+  geom_point()
+ggplot(yflow.WY, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
+  geom_point()
+
+# normality is not great for any
+# equal variance is ok
+# linearity ok, looks a bit curved for non-tranformed & sqrt, and no clear rlnship with log
+
+
+
+
+summary(M3)
+cor.test(yflow.WY$l.Wyandra_dis, yflow.WY$l.Tur_dis)
+
+# predict
+lflow.WY$predict <- predict(M3, yflow.WY)
+ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Wyan_dis[all]"))
+
+plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge (log)",y="Turra Discharge (log)",title="")
+
+```
+
+
+
+# Correlate daily flood data
+
+
+```{r cumbung - four mile vs booligal}
+# generalised linear model
+M1 <- glm(l.Four_dis ~ l.Bool_dis, data=cflow, na.action = na.omit)
 summary(M1)
 cor.test(cflow$l.Bool_dis, cflow$l.Four_dis)
 # 
@@ -190,7 +390,8 @@ ggplot(cflow, aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) +
 # linear relationship assumption is fine
 
 # predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Four_dis[all]"))
+cflow$predict <- predict(M1, cflow)
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bool_dis[all]"))
 
 plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
 
@@ -198,7 +399,8 @@ plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 
 
 # generalised linear model
-M1 <- glm(l.Bool_lev ~ l.Four_lev, data=cflow, na.action = na.omit)
+M1 <- glm(l.Four_lev ~ l.Bool_lev, data=cflow, na.action = na.omit)
+#M1 <- glm(Four_lev ~ Bool_lev, data=cflow, na.action = na.omit)
 summary(M1)
 cor.test(cflow$l.Bool_lev, cflow$l.Four_lev)
 # 
@@ -214,11 +416,61 @@ ggplot(cflow, aes(l.Bool_lev, l.Four_lev), na.rm = TRUE) +
 # linear relationship assumption is fine
 
 # predict
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Four_lev[all]"))
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Bool_lev[all]"))
 
-plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
+plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal level",y="Four mile weir level",title="")
 ```
 
+
+
+```{r cumbung - four mile vs corrong}
+# generalised linear model
+M1 <- glm(l.Four_dis ~ l.Corr_dis, data=cflow, na.action = na.omit)
+summary(M1)
+cor.test(cflow$l.Corr_dis, cflow$l.Four_dis)
+# 
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+# without log transformation, looks terrible
+# still really weird qqplot with log-log transformation
+par(mfrow = c(1, 1))
+ggplot(cflow, aes(l.Corr_dis, l.Four_dis), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# linear relationship assumption is fine
+
+# predict
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Corr_dis[all]"))
+
+plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Corrong Discharge",y="Four mile weir Discharge",title="")
+
+
+
+
+# generalised linear model
+M1 <- glm(l.Four_lev ~ l.Corr_lev, data=cflow, na.action = na.omit)
+#M1 <- glm(Four_lev ~ Corr_lev, data=cflow, na.action = na.omit)
+summary(M1)
+cor.test(cflow$l.Corr_lev, cflow$l.Four_lev)
+# 
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+# without log transformation, looks terrible
+# still really weird qqplot with log-log transformation
+# equal variances not great either
+par(mfrow = c(1, 1))
+ggplot(cflow, aes(l.Corr_lev, l.Four_lev), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# linear relationship assumption is fine
+
+# predict
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Corr_lev[all]"))
+
+plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Corrong level",y="Four mile weir level",title="")
+```
 
 
 
@@ -267,29 +519,98 @@ plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.
 ```
 
 
-
-```{r riverland}
+```{r lowbidgee}
 # generalised linear model
-M1 <- glm(l.M10_dis ~ l.Tur_dis, data=rflow, na.action = na.omit)
+M1 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow, na.action = na.omit)
 summary(M1)
-cor.test(rflow$l.Wyan_dis, rflow$l.Tur_dis)
+cor.test(lflow$l.Red_dis, lflow$l.Hay_dis)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
 par(mfrow = c(1, 1))
-ggplot(rflow, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
+ggplot(lflow, aes(l.Red_dis, l.Hay_dis), na.rm = TRUE) +
   geom_point() # test for linear relationship
 # normality is fixed with log-log relationship
-# equal variances and linearity are good too
+# equal variances still looks weird though
+# linear log log relationship is pretty much acceptable except some weird turn in high values
 
 # predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Tur_dis[all]"))
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Hay_dis[all]"))
 
-plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
+plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
+
+
+
+
+
+# generalised linear model
+M1 <- glm(l.Red_lev ~ l.Hay_lev, data=lflow, na.action = na.omit)
+M2 <- glm(Red_lev ~ Hay_lev, data=lflow, na.action = na.omit)
+summary(M1)
+cor.test(lflow$l.Red_lev, lflow$l.Hay_lev)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+par(mfrow = c(1, 1))
+ggplot(lflow, aes(l.Red_lev, l.Hay_lev), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# normality is fixed with log-log relationship
+# equal variances still looks weird though
+# linear log log relationship is pretty much acceptable except some weird turn in high values
+
+# predict
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Hay_lev[all]"))
+ggemmeans.lev2 <- ggemmeans(M2, terms = c("Hay_lev[all]"))
+
+plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
+plot(ggemmeans.lev2,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
 ```
 
 
+```{r hattah}
+# generalised linear model
+M1 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow, na.action = na.omit)
+summary(M1)
+cor.test(hflow$l.Col_dis, hflow$l.Bar_dis)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+par(mfrow = c(1, 1))
+ggplot(hflow, aes(l.Col_dis, l.Bar_dis), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# normality, equal variances and linearity all look ok with log log data
+
+# predict
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bar_dis[all]"))
+
+plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Barham Discharge",y="Colignan Discharge",title="")
+
+
+
+
+
+# generalised linear model
+M1 <- glm(l.Col_lev ~ l.Bar_lev, data=hflow, na.action = na.omit)
+summary(M1)
+cor.test(hflow$l.Col_lev, hflow$l.Bar_lev)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+par(mfrow = c(1, 1))
+ggplot(hflow, aes(l.Col_lev, l.Bar_lev), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# normality is a bit off but hopefully ok
+# equal variances and linearity look good with log log
+
+# predict
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Bar_lev[all]"))
+
+plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
+```
 
 
 ```{r Cumbung Inundation area vs Booligal discharge}
@@ -337,6 +658,10 @@ MannKendall(TS.Flood)
 ggplot(ctrend, aes(x = Year, y = Inun_area)) +
   geom_line()
 
+ggplot(ctrend, aes(x = Year, y = Inun_5yr)) +
+  geom_line() +
+  stat_smooth(method = lm)
+
 ggplot(ctrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
@@ -360,17 +685,17 @@ ggplot(btrend, aes(x = Year, y = Flood)) +
 ```
 
 
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+```{r gwydir}
+TS.Dis <- ts(gtrend$Discharge[1:75], 1946, 2020)
+TS.Flood <- ts(gtrend$Flood[1:75], 1946, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
 
-ggplot(btrend, aes(x = Year, y = Discharge)) +
+ggplot(gtrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
-ggplot(btrend, aes(x = Year, y = Flood)) +
+ggplot(gtrend, aes(x = Year, y = Flood)) +
   geom_line()
 ```
 
