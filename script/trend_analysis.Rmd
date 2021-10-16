@@ -330,45 +330,6 @@ plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 ```
 
 
-```{r}
-# generalised linear model
-M1 <- glm(sqrt(Tur_dis) ~ sqrt(Wyan_dis), data=yflow.WY, na.action = na.omit)
-M2 <- glm(Tur_dis ~ Wyan_dis, data=yflow.WY, na.action = na.omit)
-M3 <- glm(l.Tur_dis ~ l.Wyan_dis, data=yflow.WY, na.action = na.omit)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-plot(M2)
-plot(M3)
-par(mfrow = c(1, 1))
-ggplot(yflow.WY, aes(sqrt(Wyan_dis), sqrt(Tur_dis)), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-ggplot(yflow.WY, aes(Wyan_dis, Tur_dis), na.rm = TRUE) +
-  geom_point()
-ggplot(yflow.WY, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
-  geom_point()
-
-# normality is not great for any
-# equal variance is ok
-# linearity ok, looks a bit curved for non-tranformed & sqrt, and no clear rlnship with log
-
-
-
-
-summary(M3)
-cor.test(yflow.WY$l.Wyandra_dis, yflow.WY$l.Tur_dis)
-
-# predict
-lflow.WY$predict <- predict(M3, yflow.WY)
-ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Wyan_dis[all]"))
-
-plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge (log)",y="Turra Discharge (log)",title="")
-
-```
-
-
-
 # Correlate daily flood data
 
 
