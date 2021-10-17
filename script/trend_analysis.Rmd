@@ -318,7 +318,7 @@ lflow.WY$predict.l <- predict(M3, lflow.WY)
 lflow.WY$predict <- exp(lflow.WY$predict.l) - 1
 # back transform 
 plot(lflow.WY$Red_dis ~ lflow.WY$predict)
-# visualise relationship between original and predicted colignan discharge
+# visualise relationship between original and predicted redbank discharge
 
 # visualise correlation
 ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Hay_dis[all]"))
@@ -330,35 +330,10 @@ plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 ```
 
 
-# Correlate daily flood data
+# Correlate daily flood data - Cumbung, Hattah, Lowbidgee
 
 
 ```{r cumbung - four mile vs booligal}
-# generalised linear model
-M1 <- glm(l.Four_dis ~ l.Bool_dis, data=cflow, na.action = na.omit)
-summary(M1)
-cor.test(cflow$l.Bool_dis, cflow$l.Four_dis)
-# 
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-# without log transformation, looks terrible
-# still really weird qqplot with log-log transformation
-par(mfrow = c(1, 1))
-ggplot(cflow, aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# linear relationship assumption is fine
-
-# predict
-cflow$predict <- predict(M1, cflow)
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bool_dis[all]"))
-
-plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
-
-
-
-
 # generalised linear model
 M1 <- glm(l.Four_lev ~ l.Bool_lev, data=cflow, na.action = na.omit)
 #M1 <- glm(Four_lev ~ Bool_lev, data=cflow, na.action = na.omit)
@@ -435,124 +410,7 @@ plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 
 
 
-```{r yantabulla}
-# generalised linear model
-#M1 <- glm(Wyan_dis ~ Tur_dis, data=yflow, na.action = na.omit)
-M1 <- glm(l.Wyan_dis ~ l.Tur_dis, data=yflow, na.action = na.omit)
-summary(M1)
-cor.test(yflow$l.Wyan_dis, yflow$l.Tur_dis)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-par(mfrow = c(1, 1))
-ggplot(yflow, aes(l.Wyan_dis, l.Tur_dis), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# normality is fixed with log-log relationship
-# equal variances and linearity are good too
-
-# predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Tur_dis[all]"))
-
-plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
-
-
-
-# generalised linear model
-M1 <- glm(Wyan_lev ~ Tur_lev, data=yflow, na.action = na.omit)
-#M1 <- glm(l.Wyan_lev ~ l.Tur_lev, data=yflow, na.action = na.omit)
-summary(M1)
-cor.test(yflow$l.Wyan_lev, yflow$l.Tur_lev)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-par(mfrow = c(1, 1))
-ggplot(yflow, aes(l.Wyan_lev, l.Tur_lev), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# normality is better with log-log relationship but still not great
-# equal variances and linearity are good
-
-# predict
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Tur_lev[all]"))
-
-plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Wyandra Discharge",y="Turra Discharge",title="")
-```
-
-
-```{r lowbidgee}
-# generalised linear model
-M1 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow, na.action = na.omit)
-summary(M1)
-cor.test(lflow$l.Red_dis, lflow$l.Hay_dis)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-par(mfrow = c(1, 1))
-ggplot(lflow, aes(l.Red_dis, l.Hay_dis), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# normality is fixed with log-log relationship
-# equal variances still looks weird though
-# linear log log relationship is pretty much acceptable except some weird turn in high values
-
-# predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Hay_dis[all]"))
-
-plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
-
-
-
-
-
-# generalised linear model
-M1 <- glm(l.Red_lev ~ l.Hay_lev, data=lflow, na.action = na.omit)
-M2 <- glm(Red_lev ~ Hay_lev, data=lflow, na.action = na.omit)
-summary(M1)
-cor.test(lflow$l.Red_lev, lflow$l.Hay_lev)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-par(mfrow = c(1, 1))
-ggplot(lflow, aes(l.Red_lev, l.Hay_lev), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# normality is fixed with log-log relationship
-# equal variances still looks weird though
-# linear log log relationship is pretty much acceptable except some weird turn in high values
-
-# predict
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Hay_lev[all]"))
-ggemmeans.lev2 <- ggemmeans(M2, terms = c("Hay_lev[all]"))
-
-plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
-plot(ggemmeans.lev2,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
-```
-
-
 ```{r hattah}
-# generalised linear model
-M1 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow, na.action = na.omit)
-summary(M1)
-cor.test(hflow$l.Col_dis, hflow$l.Bar_dis)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-par(mfrow = c(1, 1))
-ggplot(hflow, aes(l.Col_dis, l.Bar_dis), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# normality, equal variances and linearity all look ok with log log data
-
-# predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bar_dis[all]"))
-
-plot(ggemmeans.Dis,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Barham Discharge",y="Colignan Discharge",title="")
-
-
-
-
-
 # generalised linear model
 M1 <- glm(l.Col_lev ~ l.Bar_lev, data=hflow, na.action = na.omit)
 summary(M1)
@@ -567,11 +425,30 @@ ggplot(hflow, aes(l.Col_lev, l.Bar_lev), na.rm = TRUE) +
 # normality is a bit off but hopefully ok
 # equal variances and linearity look good with log log
 
+
 # predict
+hflow$predict.l <- predict(M1, hflow)
+# create a variable that is predicted log redbank dis
+hflow$predict <- exp(hflow$predict.l) - 1
+# back transform 
+plot(hflow$Col_lev ~ hflow$predict)
+# visualise relationship between original and predicted colignan level
+
+
+# plot
 ggemmeans.lev <- ggemmeans(M1, terms = c("l.Bar_lev[all]"))
 
-plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge",y="Redbank Discharge",title="")
+plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Barham Discharge (log)",y="Colignan Discharge (log)",title="")
+
+# export
+write.csv(hflow, "output/hattah_pred_lev.csv")
 ```
+
+
+
+
+
+
 
 
 ```{r Cumbung Inundation area vs Booligal discharge}
@@ -605,16 +482,16 @@ ggplot(cinun, aes(area.km2, pred.area.km2)) +
 
 
 
-# Time series analysis
+# Time series analysis - Kendall rank correlations
 
 ```{r cumbung}
-TS.Dis <- ts(ctrend$Discharge[1:75], 1946, 2020)
+#TS.Dis <- ts(ctrend$Discharge[1:75], 1946, 2020)
 TS.Inun <- ts(ctrend$Inun_area[42:75], 1987, 2020)
-TS.Flood <- ts(ctrend$Flood_days[1:75], 1946, 2020)
+#TS.Flood <- ts(ctrend$Flood_days[1:75], 1946, 2020)
 
-MannKendall(TS.Dis)
+#MannKendall(TS.Dis)
 MannKendall(TS.Inun)
-MannKendall(TS.Flood)
+#MannKendall(TS.Flood)
 
 ggplot(ctrend, aes(x = Year, y = Inun_area)) +
   geom_line()
@@ -623,17 +500,17 @@ ggplot(ctrend, aes(x = Year, y = Inun_5yr)) +
   geom_line() +
   stat_smooth(method = lm)
 
-ggplot(ctrend, aes(x = Year, y = Discharge)) +
-  geom_line()
+#ggplot(ctrend, aes(x = Year, y = Discharge)) +
+  #geom_line()
 
-ggplot(ctrend, aes(x = Year, y = Flood_days)) +
-  geom_line()
+#ggplot(ctrend, aes(x = Year, y = Flood_days)) +
+  #geom_line()
 ```
 
 
 ```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+TS.Dis <- ts(btrend$Discharge[1:69], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:69], 1946, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -647,8 +524,8 @@ ggplot(btrend, aes(x = Year, y = Flood)) +
 
 
 ```{r gwydir}
-TS.Dis <- ts(gtrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(gtrend$Flood[1:75], 1946, 2020)
+TS.Dis <- ts(gtrend$Discharge[1:50], 1930, 2020)
+TS.Flood <- ts(gtrend$Flood[1:50], 1930, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -662,98 +539,99 @@ ggplot(gtrend, aes(x = Year, y = Flood)) +
 
 
 
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+```{r hattah}
+TS.Dis <- ts(htrend$Discharge[1:106], 1913, 2020)
+#TS.Flood <- ts(htrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+#MannKendall(TS.Flood)
+
+ggplot(htrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+#ggplot(htrend, aes(x = Year, y = Flood)) +
+  #geom_line()
+```
+
+
+
+```{r lowbidgee}
+TS.Dis <- ts(ltrend$Discharge[1:92], 1915, 2020)
+#TS.Flood <- ts(ltrend$Flood[1:75], 1946, 2020)
+
+MannKendall(TS.Dis)
+#MannKendall(TS.Flood)
+
+ggplot(ltrend, aes(x = Year, y = Discharge)) +
+  geom_line()
+
+#ggplot(ltrend, aes(x = Year, y = Flood)) +
+ # geom_line()
+```
+
+
+
+```{r macquarie}
+TS.Dis <- ts(mtrend$Discharge[1:66], 1955, 2020)
+TS.Flood <- ts(mtrend$Flood[1:66], 1955, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
 
-ggplot(btrend, aes(x = Year, y = Discharge)) +
+ggplot(mtrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
-ggplot(btrend, aes(x = Year, y = Flood)) +
+ggplot(mtrend, aes(x = Year, y = Flood)) +
   geom_line()
 ```
 
 
 
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+```{r paroo}
+TS.Dis <- ts(ptrend$Discharge[1:45], 1976, 2020)
+TS.Flood <- ts(ptrend$Flood[1:45], 1976, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
 
-ggplot(btrend, aes(x = Year, y = Discharge)) +
+ggplot(ptrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
-ggplot(btrend, aes(x = Year, y = Flood)) +
+ggplot(ptrend, aes(x = Year, y = Flood)) +
   geom_line()
 ```
 
 
 
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+```{r riverland}
+TS.Dis <- ts(rtrend$Discharge[1:119], 1902, 2020)
+TS.Flood <- ts(rtrend$Flood[1:46], 1975, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
 
-ggplot(btrend, aes(x = Year, y = Discharge)) +
+ggplot(rtrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
-ggplot(btrend, aes(x = Year, y = Flood)) +
+ggplot(rtrend, aes(x = Year, y = Flood)) +
   geom_line()
 ```
 
 
 
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
+```{r yantabulla}
+TS.Dis <- ts(ytrend$Discharge[1:27], 1994, 2020)
+TS.Flood <- ts(ytrend$Flood[1:27], 1994, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
 
-ggplot(btrend, aes(x = Year, y = Discharge)) +
+ggplot(ytrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
-ggplot(btrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(btrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(btrend, aes(x = Year, y = Flood)) +
+ggplot(ytrend, aes(x = Year, y = Flood)) +
   geom_line()
 ```
 
 
-
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:75], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:75], 1946, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(btrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(btrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
+# Time series analysis - quantify
