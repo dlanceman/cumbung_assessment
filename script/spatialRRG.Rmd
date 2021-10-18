@@ -1,0 +1,135 @@
+---
+title: "Predict RRG Health spatially"
+author: "Dana Lanceman"
+date: "10/14/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
+```
+
+
+```{r load packages}
+library(tidyverse)
+library(raster)
+library(lme4)
+library(sf)
+```
+
+
+```{r get data}
+# get rasters
+elev <- raster("raw/raster/1m_DEM_merge.tif")
+inun <- raster("raw/raster/Inundation_Cumbung.tif")
+
+# convert to same coordinate system
+inun <- projectRaster(inun, crs= crs('+proj=utm +zone=55 +ellps=GRS80 +units=m +no_defs'))
+# warning - elevation projection takes about 1 hour
+elev <- projectRaster(elev, crs= crs('+proj=utm +zone=55 +ellps=GRS80 +units=m +no_defs'))
+
+# get shapefile and convert
+cumbung <- st_read('raw/shp/Cumbung_ecological.shp')
+cumbung <- st_transform(cumbung, CRS(proj4string(inun)))
+
+# visualise
+plot(elev)
+plot(inun)
+```
+
+
+```{r prep spatial data}
+# crop elev to cumbung extent
+elev.crop <- crop(elev, extent(cumbung)) 
+elev.crop <- mask(elev.crop, cumbung)
+plot(elev.crop)
+
+# turn zeroes into NAs as the areas where elev values didn't exist became zeroes
+elev.crop[elev.crop == 0] <- NA
+plot(elev.crop)
+
+# resample elev.crop to the inundation resolution
+elev.res <- resample(elev.crop,inun, method='bilinear')
+
+# crop inun to new elev extent (missing some areas)
+inun.crop <- crop(inun, extent(elev.res)) 
+inun.crop <- mask(inun.crop, elev.res)
+plot(inun.crop)
+
+# square-root transform inundation
+inun.sqrt <- sqrt(inun.crop)
+
+# stack rasters
+rs <- stack(c(inun.sqrt, elev.res))
+```
+
+
+
+
+```{r get & prepare RRG data}
+tree <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Fieldwork/Analysis/Raw/CumbungFieldDataAll.xlsx", sheet="TreeMetricsUncorrected")
+
+tree$s.Inundation.300m <- sqrt(tree$Inundation.300m)
+
+tree2 <- tree[-c(46:51,70:87,100:105),]
+```
+
+
+
+
+
+```{r create new model with just inundation and elevation}
+M <- lmer(Health_Cat ~ poly(s.Inundation.300m,2) +  Elevation + (1|Site),data=tree2, REML= FALSE)
+
+
+#Change names of layers in raster stack to match model
+names(rs) <- c("s.Inundation.300m", "Elevation")
+```
+
+
+```{r create RRG health raster}
+Pred <- raster::predict(rs, M, re.form = NA)
+# re.form = NA is so the model can run without a "site" term
+
+plot(Pred) # this is for all cumbung, not just RRG
+
+# clip to RRG extent only
+RRG <- st_read('raw/shp/Cumbung_ANAE_RRG.shp')
+RRG <- st_transform(RRG, CRS(proj4string(inun)))
+
+Pred.crop <- crop(Pred, extent(RRG)) 
+Pred.crop <- mask(Pred.crop, st_zm(RRG))
+plot(Pred.crop)
+```
+
+
+```{r Calculate area of each health class}
+# round the raster to give integer values only
+r.Pred.crop <- round(Pred.crop)
+unique(r.Pred.crop) # check output values
+
+# calculate number of cells in each class
+cells <- freq(r.Pred.crop) # output is vectors
+cellsDF <- as.data.frame(cells) # make this a dataframe
+cellsDF
+
+# determine cell size in map units
+res(r.Pred.crop) # cell size is 22.7 x 27.1 (metres)
+
+# use this to calculate area of each class in hecates
+cellsDF$area <- cellsDF$count*22.7*27.1/10000
+cellsDF
+
+# range of possible Health values is 4-22, so reclassify values outside this range to NA (there aren't many anyway)
+m <- c(-Inf,3,NA, 22,Inf,NA)
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rec.RRG.health <- reclassify(r.Pred.crop,rclmat)
+unique(rec.RRG.health)
+
+write.csv(cellsDF, "output/RRGareas.csv")
+writeRaster(rec.RRG.health,"output/raster/RRGhealthR.tif")
+```
+
