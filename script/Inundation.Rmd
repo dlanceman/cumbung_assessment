@@ -1,0 +1,69 @@
+---
+title: "Inundation"
+author: "Dana Lanceman"
+date: "15/06/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
+```
+
+```{r Set up}
+library(sf)
+library(raster)
+library(exactextractr)
+library(rgdal)
+library(tidyverse)
+```
+
+```{r Load files}
+cumbungBoundary <- st_read('Data_raw/shp/CumbungBoundary.shp')
+
+# put all raster files in the folder into a list
+files <- list.files(path = "C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Data_analysis/R_Studio/Project/Data_raw/raster/Inundation", pattern = "Inundation_")
+
+files
+
+#import all raster files in folder using lapply
+setwd("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Data_analysis/R_Studio/Project/Data_raw/raster/Inundation")
+allrasters <- lapply(files, raster)
+```
+
+
+```{r Prepare for and calculate area}
+# stack rasters
+s <- stack(allrasters)
+
+# calculate inundation area - df returns a dataframe
+# the st_zm function helped read cumbungBoundary
+# need to specify we're using extract from raster and not from another package
+ex <- raster::extract(s, st_zm(cumbungBoundary), fun='sum', na.rm=TRUE, df=TRUE)
+```
+
+
+```{r Manipulate data}
+# Change from wide to long format, remove ID field
+ex <- gather(ex[,-1], key = "raster", value = "pixels", )
+
+# transform these values to areas based on pixel size 25 x 25 m
+ex$area.m2 <- ex$pixels * 25 * 25
+ex$area.km2 <- ex$area / 1000 / 1000
+
+# add a year column
+# map performs the function on each element of the vector/list
+# map_chr means it's applied to a vector
+# unlist simplifies a list structure to an atomic vector
+# strsplit splits the raster vectorinto two components, removing the Inundation_ part and leaving the remainder
+ex <- ex %>%
+  mutate(year = map_chr(raster, ~unlist(strsplit(., "Inundation_"))[2])) 
+
+view(ex)
+
+setwd("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Data_analysis/R_Studio/Project")
+write.csv(ex, file = "Output/csv/annual_inundation_area.csv")
+```
+
