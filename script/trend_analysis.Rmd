@@ -19,6 +19,8 @@ library(tidyverse)
 library(Kendall)
 library(ggeffects)
 library(zoo)
+library(ggpubr)
+library(lubridate)
 
 options(java.parameters = "-Xmx8000m") 
 # the above increases the number of MB of ram that java can heap in order for xlsx package to run properly and save large files into an excel file. This line needs to be run before the xlsx package is loaded in. The number 8000 (MB) can be changed to whatever number you require.
@@ -28,28 +30,39 @@ library(xlsx)
 
 ```{r get daily flow/flood data}
 # guess_max lets excel use more rows to decide the data type of the data (missing data makes it think the data type is logical otherwise)
-# add a 'wateryear' column
+# add a 'wateryear' and 'month' columns
 
-cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) %>% mutate(wateryear = format(as.Date(`Date and time`, format="%d/%m/%Y"),"%Y"))
+add.date <- function(data){
+  data %>% mutate(wateryear = year(Date),
+       month = month(Date),
+       ym = make_date(wateryear, month)) 
+}
+
+cflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung", guess_max = 30000) %>% mutate(wateryear = year(`Date and time`),
+       month = month(`Date and time`),
+       ym = make_date(wateryear, month))
 # check all data types are numerical
 str(cflow)
 
-hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 30000) %>% mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y")) 
+hflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "hattah", guess_max = 30000) %>% add.date()
 str(hflow)
 
-lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
+lflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "lowbidgee", guess_max = 30000) %>% add.date()
 str(lflow)
 
-yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
+yflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "yantabulla", guess_max = 30000) %>% add.date() 
 str(yflow)
 
-rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
+rflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "riverland", guess_max = 30000) %>% add.date()
 str(rflow)
 
-gflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "gwydir", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
+pflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "paroo", guess_max = 30000) %>% add.date()
+str(pflow)
+
+gflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "gwydir", guess_max = 30000) %>% add.date()
 str(gflow)
 
-mflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "macquarie", guess_max = 30000) %>%  mutate(wateryear = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
+mflow <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "macquarie", guess_max = 30000) %>% add.date()
 str(mflow)
 ```
 
@@ -61,15 +74,25 @@ cinun <- read_excel("raw/correlate_flow_flood.xlsx",sheet = "cumbung_inun") %>%
          l.area.km2 = log(area.km2))
 
 # trend analysis data
-ctrend <- read_excel("raw/trend_analysis.xlsx",sheet = "cumbung")
-btrend <- read_excel("raw/trend_analysis.xlsx",sheet = "booligal")
-gtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "gwydir")
-htrend <- read_excel("raw/trend_analysis.xlsx",sheet = "hattah")
-ltrend <- read_excel("raw/trend_analysis.xlsx",sheet = "lowbidgee")
-mtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "macquarie")
-ptrend <- read_excel("raw/trend_analysis.xlsx",sheet = "paroo")
-rtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "riverland")
-ytrend <- read_excel("raw/trend_analysis.xlsx",sheet = "yantabulla")
+# add columns for missing data
+ctrend <- read_excel("raw/trend_analysis.xlsx",sheet = "cumbung") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+btrend <- read_excel("raw/trend_analysis.xlsx",sheet = "booligal") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+gtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "gwydir") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+htrend <- read_excel("raw/trend_analysis.xlsx",sheet = "hattah") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+ltrend <- read_excel("raw/trend_analysis.xlsx",sheet = "lowbidgee") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+mtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "macquarie") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+ptrend <- read_excel("raw/trend_analysis.xlsx",sheet = "paroo") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+rtrend <- read_excel("raw/trend_analysis.xlsx",sheet = "riverland") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
+ytrend <- read_excel("raw/trend_analysis.xlsx",sheet = "yantabulla") %>% 
+  mutate(missing_dis = case_when(is.na(Discharge) ~ 1))
 ```
 
 
@@ -117,6 +140,11 @@ mflow <- mflow %>% mutate(ox_lev = na.approx(ox_lev, maxgap = 10, na.rm = TRUE),
                           ox_dis = na.approx(ox_dis, maxgap = 10, na.rm = TRUE),
                           l.ox_dis = log(ox_dis + 1),
                           l.ox_lev = log(ox_lev + 1))
+
+pflow <- pflow %>% mutate(will_lev = na.approx(will_lev, maxgap = 10, na.rm = TRUE),
+                          will_dis = na.approx(will_dis, maxgap = 10, na.rm = TRUE),
+                          l.will_dis = log(will_dis + 1),
+                          l.will_lev = log(will_lev + 1))
 
 rflow <- rflow %>% mutate(Flows_dis = na.approx(Flows_dis, maxgap = 10, na.rm = TRUE),
                           RenPS_lev = na.approx(RenPS_lev, maxgap = 10, na.rm = TRUE),
@@ -167,43 +195,64 @@ saveWorkbook(wb, "output/filledflows.xlsx")
 
 
 
+```{r summarise water level data by month and log transform}
+# just cumbung, hattah and lowbidgee
+
+cflow.m <- cflow %>% group_by(ym) %>% summarise(nB = sum(!is.na(Bool_lev)), nF = sum(!is.na(Four_lev)), Bool_lev = mean(Bool_lev, na.rm = TRUE), Four_lev = mean(Four_lev, na.rm = TRUE)) %>% 
+  mutate(l.Four_lev = log(Four_lev + 1),
+        l.Bool_lev = log(Bool_lev + 1))
+
+hflow.m <- hflow %>% group_by(ym) %>% summarise(nB = sum(!is.na(Bar_lev)), nC = sum(!is.na(Col_lev)), Bar_lev = mean(Bar_lev, na.rm = TRUE), Bar_lev = mean(Bar_lev, na.rm = TRUE), Col_lev = mean(Col_lev, na.rm = TRUE), Col_lev = mean(Col_lev, na.rm = TRUE)) %>% 
+  mutate(l.Bar_lev = log(Bar_lev + 1),
+         l.Col_lev = log(Col_lev + 1))
+
+lflow.m <- lflow %>% group_by(ym) %>% summarise(nH = sum(!is.na(Hay_lev)), nR = sum(!is.na(Red_lev)), Hay_lev = mean(Hay_lev, na.rm = TRUE), Hay_lev = mean(Hay_lev, na.rm = TRUE), Red_lev = mean(Red_lev, na.rm = TRUE), Red_lev = mean(Red_lev, na.rm = TRUE)) %>% 
+  mutate(l.Hay_lev = log(Hay_lev + 1),
+         l.Red_lev = log(Red_lev + 1))
+
+```
+
 
 ```{r summarise data per year and log transform annual data}
-cflow.WY <- cflow %>% group_by(wateryear) %>% summarise(Bool_dis = mean(Bool_dis, na.rm = TRUE), Four_dis = mean(Four_dis, na.rm = TRUE), Bool_lev = mean(Bool_lev, na.rm = TRUE), Four_lev = mean(Four_lev, na.rm = TRUE)) %>% 
+cflow.WY <- cflow %>% group_by(wateryear) %>% summarise(nBl = sum(!is.na(Bool_lev)), nFl = sum(!is.na(Four_lev)), nBd = sum(!is.na(Bool_dis)), nFd = sum(!is.na(Four_dis)), Bool_dis = mean(Bool_dis, na.rm = TRUE), Four_dis = mean(Four_dis, na.rm = TRUE), Bool_lev = mean(Bool_lev, na.rm = TRUE), Four_lev = mean(Four_lev, na.rm = TRUE)) %>% 
   mutate(l.Four_dis = log(Four_dis + 1),
         l.Four_lev = log(Four_lev + 1),
         l.Bool_dis = log(Bool_dis + 1),
         l.Bool_lev = log(Bool_lev + 1))
 
-gflow.WY <- gflow %>% group_by(wateryear) %>% summarise(Yarr_dis = mean(Yarr_dis, na.rm = TRUE), Yarr_lev = mean(Yarr_lev, na.rm = TRUE)) %>% 
+gflow.WY <- gflow %>% group_by(wateryear) %>% summarise(nYl = sum(!is.na(Yarr_lev)), nYd = sum(!is.na(Yarr_dis)), Yarr_dis = mean(Yarr_dis, na.rm = TRUE), Yarr_lev = mean(Yarr_lev, na.rm = TRUE)) %>% 
   mutate(l.Yarr_dis = log(Yarr_dis + 1),
          l.Yarr_lev = log(Yarr_lev + 1))
 
-hflow.WY <- hflow %>% group_by(wateryear) %>% summarise(Bar_dis = mean(Bar_dis, na.rm = TRUE), Bar_lev = mean(Bar_lev, na.rm = TRUE), Col_dis = mean(Col_dis, na.rm = TRUE), Col_lev = mean(Col_lev, na.rm = TRUE)) %>% 
+hflow.WY <- hflow %>% group_by(wateryear) %>% summarise(nBl = sum(!is.na(Bar_lev)), nCl = sum(!is.na(Col_lev)), nBd = sum(!is.na(Bar_dis)), nCd = sum(!is.na(Col_dis)), Bar_dis = mean(Bar_dis, na.rm = TRUE), Bar_lev = mean(Bar_lev, na.rm = TRUE), Col_dis = mean(Col_dis, na.rm = TRUE), Col_lev = mean(Col_lev, na.rm = TRUE)) %>% 
   mutate(l.Bar_lev = log(Bar_lev + 1),
          l.Bar_dis = log(Bar_dis + 1),
          l.Col_lev = log(Col_lev + 1),
          l.Col_dis = log(Col_dis + 1))
 
-lflow.WY <- lflow %>% group_by(wateryear) %>% summarise(Hay_dis = mean(Hay_dis, na.rm = TRUE), Hay_lev = mean(Hay_lev, na.rm = TRUE), Red_lev = mean(Red_lev, na.rm = TRUE), Red_dis = mean(Red_dis, na.rm = TRUE)) %>% 
+lflow.WY <- lflow %>% group_by(wateryear) %>% summarise(nHl = sum(!is.na(Hay_lev)), nRl = sum(!is.na(Red_lev)), nHd = sum(!is.na(Hay_dis)), nRd = sum(!is.na(Red_dis)), Hay_dis = mean(Hay_dis, na.rm = TRUE), Hay_lev = mean(Hay_lev, na.rm = TRUE), Red_lev = mean(Red_lev, na.rm = TRUE), Red_dis = mean(Red_dis, na.rm = TRUE)) %>% 
   mutate(l.Hay_dis = log(Hay_dis + 1),
          l.Red_lev = log(Red_lev + 1),
          l.Red_dis = log(Red_dis + 1),
          l.Hay_lev = log(Hay_lev + 1))
 
-mflow.WY <- mflow %>% group_by(wateryear) %>% summarise(ox_lev = mean(ox_lev, na.rm = TRUE), ox_dis = mean(ox_dis, na.rm = TRUE)) %>% 
+mflow.WY <- mflow %>% group_by(wateryear) %>% summarise(nOl = sum(!is.na(ox_lev)), nOd = sum(!is.na(ox_dis)), ox_lev = mean(ox_lev, na.rm = TRUE), ox_dis = mean(ox_dis, na.rm = TRUE)) %>% 
   mutate(l.ox_dis = log(ox_dis + 1),
          l.ox_lev = log(ox_lev + 1))
 
-rflow.WY <- rflow %>% group_by(wateryear) %>% summarise(Flows_dis = mean(Flows_dis, na.rm = TRUE), RenPS_lev = mean(RenPS_lev, na.rm = TRUE)) %>% 
+pflow.WY <- pflow %>% group_by(wateryear) %>% summarise(nWl = sum(!is.na(will_lev)), nWd = sum(!is.na(will_dis)), will_lev = mean(will_lev, na.rm = TRUE), will_dis = mean(will_dis, na.rm = TRUE)) %>% 
+  mutate(l.will_dis = log(will_dis + 1),
+         l.will_lev = log(will_lev + 1))
+
+rflow.WY <- rflow %>% group_by(wateryear) %>% summarise(nFd = sum(!is.na(Flows_dis)), nRl = sum(!is.na(RenPS_lev)), Flows_dis = mean(Flows_dis, na.rm = TRUE), RenPS_lev = mean(RenPS_lev, na.rm = TRUE)) %>% 
   mutate(l.Flows_dis = log(Flows_dis + 1),
          l.RenPS_lev = log(RenPS_lev + 1))
 
-yflow.WY <- yflow %>% group_by(wateryear) %>% summarise(Wyan_lev = mean(Wyan_lev, na.rm = TRUE), Wyan_dis = mean(Wyan_dis, na.rm = TRUE), Tur_lev = mean(Tur_lev, na.rm = TRUE), Tur_dis = mean(Tur_dis, na.rm = TRUE)) %>% 
+yflow.WY <- yflow %>% group_by(wateryear) %>% summarise(nTl = sum(!is.na(Tur_lev)), nTd = sum(!is.na(Tur_dis)), nWl = sum(!is.na(Wyan_lev)), nWd = sum(!is.na(Wyan_dis)), Wyan_lev = mean(Wyan_lev, na.rm = TRUE), Wyan_dis = mean(Wyan_dis, na.rm = TRUE), Tur_lev = mean(Tur_lev, na.rm = TRUE), Tur_dis = mean(Tur_dis, na.rm = TRUE)) %>% 
   mutate(l.Tur_lev = log(Tur_lev + 1),
          l.Tur_dis = log(Tur_dis + 1),
          l.Wyan_dis = log(Wyan_dis + 1),
-         l.Wyan_lev = log(Wyan_lev + 1))
+         l.Wyan_lev = log(Wyan_lev + 1)) 
 ```
 
 
@@ -211,55 +260,40 @@ yflow.WY <- yflow %>% group_by(wateryear) %>% summarise(Wyan_lev = mean(Wyan_lev
 
 ```{r Cumbung}
 # generalised linear model
-M1 <- glm(sqrt(Four_dis) ~ sqrt(Bool_dis), data=cflow.WY, na.action = na.omit)
-M2 <- glm(Four_dis ~ Bool_dis, data=cflow.WY, na.action = na.omit)
-M3 <- glm(l.Four_dis ~ l.Bool_dis, data=cflow.WY, na.action = na.omit)
+M1 <- glm(l.Four_dis ~ l.Bool_dis, data=cflow.WY %>% filter(nFd >= 347, nBd >= 347), na.action = na.omit)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
-plot(M2) 
-plot(M3) 
 par(mfrow = c(1, 1))
-ggplot(cflow.WY, aes(sqrt(Bool_dis), sqrt(Four_dis)), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-ggplot(cflow.WY, aes(Bool_dis, Four_dis), na.rm = TRUE) +
-  geom_point()
-ggplot(cflow.WY, aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) +
-  geom_point()
+ggplot(cflow.WY %>% filter(nFd >= 347, nBd >= 347), aes(l.Bool_dis, l.Four_dis), na.rm = TRUE) + geom_point()
 
-# not happy with normality/equal variance assumptions for any
-# linear relationship - kind of linear, but also a bit curved esp log-log
-
-
-
+# very small dataset, assumptions all ok
 
 summary(M1)
 cor.test(cflow.WY$Bool_dis, cflow.WY$Four_dis)
 
 # predict
-cflow.WY$predict <- predict(M1, cflow.WY)
-ggemmeans.Dis <- ggemmeans(M1, terms = c("Bool_dis[all]"))
+cflow.WY$predict.l <- predict(M1, cflow.WY)
+# create a variable that is predicted log colignan dis
+cflow.WY$predict <- exp(cflow.WY$predict.l) - 1
+# back transform 
+plot(cflow.WY$Four_dis ~ cflow.WY$predict)
+
+
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bool_dis[all]"))
 
 plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Discharge",y="Four mile weir Discharge",title="")
 ```
 
 ```{r Hattah lakes}
 # generalised linear model
-M1 <- glm(sqrt(Col_dis) ~ sqrt(Bar_dis), data=hflow.WY, na.action = na.omit)
-M2 <- glm(Col_dis ~ Bar_dis, data=hflow.WY, na.action = na.omit)
-M3 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow.WY, na.action = na.omit)
+M1 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow.WY, na.action = na.omit)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
-plot(M2)
-plot(M3)
 par(mfrow = c(1, 1))
-ggplot(hflow.WY, aes(sqrt(Bar_dis), sqrt(Col_dis)), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-ggplot(hflow.WY, aes(Bar_dis, Col_dis), na.rm = TRUE) +
-  geom_point()
 ggplot(hflow.WY, aes(l.Bar_dis, l.Col_dis), na.rm = TRUE) +
   geom_point()
 
@@ -267,11 +301,11 @@ ggplot(hflow.WY, aes(l.Bar_dis, l.Col_dis), na.rm = TRUE) +
 # linearity is great with log-transformations
 # therefore use log-transformed data
 
-summary(M3)
+summary(M1)
 cor.test(hflow.WY$l.Bar_dis, hflow.WY$l.Col_dis)
 
 # predict
-hflow.WY$predict.l <- predict(M3, hflow.WY) 
+hflow.WY$predict.l <- predict(M1, hflow.WY) 
 # create a variable that is predicted log colignan dis
 hflow.WY$predict <- exp(hflow.WY$predict.l) - 1
 # back transform 
@@ -279,7 +313,7 @@ plot(hflow.WY$Col_dis ~ hflow.WY$predict)
 # visualise relationship between original and predicted colignan discharge
 
 # plot correlation
-ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Bar_dis[all]"))
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bar_dis[all]"))
 plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Barham Discharge (log)",y="Colignan Discharge (log)",title="")
 
 # export
@@ -288,20 +322,12 @@ plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 
 ```{r Lowbidgee}
 # generalised linear model
-M1 <- glm(sqrt(Red_dis) ~ sqrt(Hay_dis), data=lflow.WY, na.action = na.omit)
-M2 <- glm(Red_dis ~ Hay_dis, data=lflow.WY, na.action = na.omit)
-M3 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow.WY, na.action = na.omit)
+M1 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow.WY, na.action = na.omit)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
-plot(M2)
-plot(M3)
 par(mfrow = c(1, 1))
-ggplot(lflow.WY, aes(sqrt(Hay_dis), sqrt(Red_dis)), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-ggplot(lflow.WY, aes(Hay_dis, Red_dis), na.rm = TRUE) +
-  geom_point()
 ggplot(lflow.WY, aes(l.Hay_dis, l.Red_dis), na.rm = TRUE) +
   geom_point()
 
@@ -309,11 +335,11 @@ ggplot(lflow.WY, aes(l.Hay_dis, l.Red_dis), na.rm = TRUE) +
 # linearity fine in all cases
 # therefore use log-transformed data
 
-summary(M3)
+summary(M1)
 cor.test(lflow.WY$l.Hay_dis, lflow.WY$l.Red_dis)
 
 # predict
-lflow.WY$predict.l <- predict(M3, lflow.WY)
+lflow.WY$predict.l <- predict(M1, lflow.WY)
 # create a variable that is predicted log redbank dis
 lflow.WY$predict <- exp(lflow.WY$predict.l) - 1
 # back transform 
@@ -321,7 +347,7 @@ plot(lflow.WY$Red_dis ~ lflow.WY$predict)
 # visualise relationship between original and predicted redbank discharge
 
 # visualise correlation
-ggemmeans.Dis <- ggemmeans(M3, terms = c("l.Hay_dis[all]"))
+ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Hay_dis[all]"))
 
 plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay Discharge (log)",y="Redbank Discharge (log)",title="")
 
@@ -330,15 +356,16 @@ plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 ```
 
 
-# Correlate daily flood data - Cumbung, Hattah, Lowbidgee
+# Correlate monthly flood data - Cumbung, Hattah, Lowbidgee
 
 
 ```{r cumbung - four mile vs booligal}
+
 # generalised linear model
-M1 <- glm(l.Four_lev ~ l.Bool_lev, data=cflow, na.action = na.omit)
+M1 <- glm(l.Four_lev ~ l.Bool_lev, data=cflow.m %>% filter(nB >= 29, nF >= 29), na.action = na.omit)
 #M1 <- glm(Four_lev ~ Bool_lev, data=cflow, na.action = na.omit)
 summary(M1)
-cor.test(cflow$l.Bool_lev, cflow$l.Four_lev)
+cor.test(cflow.m$l.Bool_lev, cflow.m$l.Four_lev)
 # 
 
 # check assumptions
@@ -347,7 +374,7 @@ plot(M1) # top left test for equal variances, top right normality
 # without log transformation, looks terrible
 # still really weird qqplot with log-log transformation
 par(mfrow = c(1, 1))
-ggplot(cflow, aes(l.Bool_lev, l.Four_lev), na.rm = TRUE) +
+ggplot(cflow.m, aes(l.Bool_lev, l.Four_lev), na.rm = TRUE) +
   geom_point() # test for linear relationship
 # linear relationship assumption is fine
 
@@ -359,79 +386,29 @@ plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y
 
 
 
-```{r cumbung - four mile vs corrong}
-# generalised linear model
-M1 <- glm(l.Four_dis ~ l.Corr_dis, data=cflow, na.action = na.omit)
-summary(M1)
-cor.test(cflow$l.Corr_dis, cflow$l.Four_dis)
-# 
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-# without log transformation, looks terrible
-# still really weird qqplot with log-log transformation
-par(mfrow = c(1, 1))
-ggplot(cflow, aes(l.Corr_dis, l.Four_dis), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# linear relationship assumption is fine
-
-# predict
-ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Corr_dis[all]"))
-
-plot(ggemmeans.Dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Corrong Discharge",y="Four mile weir Discharge",title="")
-
-
-
-
-# generalised linear model
-M1 <- glm(l.Four_lev ~ l.Corr_lev, data=cflow, na.action = na.omit)
-#M1 <- glm(Four_lev ~ Corr_lev, data=cflow, na.action = na.omit)
-summary(M1)
-cor.test(cflow$l.Corr_lev, cflow$l.Four_lev)
-# 
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-# without log transformation, looks terrible
-# still really weird qqplot with log-log transformation
-# equal variances not great either
-par(mfrow = c(1, 1))
-ggplot(cflow, aes(l.Corr_lev, l.Four_lev), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# linear relationship assumption is fine
-
-# predict
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Corr_lev[all]"))
-
-plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Corrong level",y="Four mile weir level",title="")
-```
-
 
 
 ```{r hattah}
 # generalised linear model
-M1 <- glm(l.Col_lev ~ l.Bar_lev, data=hflow, na.action = na.omit)
-summary(M1)
-cor.test(hflow$l.Col_lev, hflow$l.Bar_lev)
+M1 <- glm(l.Col_lev ~ l.Bar_lev, data=hflow.m %>% filter(nB >= 29, nC >= 29), na.action = na.omit)
+cor.test(hflow.m$l.Col_lev, hflow.m$l.Bar_lev)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
 par(mfrow = c(1, 1))
-ggplot(hflow, aes(l.Col_lev, l.Bar_lev), na.rm = TRUE) +
+ggplot(hflow.m, aes(l.Col_lev, l.Bar_lev), na.rm = TRUE) +
   geom_point() # test for linear relationship
 # normality is a bit off but hopefully ok
 # equal variances and linearity look good with log log
 
 
 # predict
-hflow$predict.l <- predict(M1, hflow)
+hflow.m$predict.l <- predict(M1, hflow.m)
 # create a variable that is predicted log redbank dis
-hflow$predict <- exp(hflow$predict.l) - 1
+hflow.m$predict <- exp(hflow.m$predict.l) - 1
 # back transform 
-plot(hflow$Col_lev ~ hflow$predict)
+plot(hflow.m$Col_lev ~ hflow.m$predict)
 # visualise relationship between original and predicted colignan level
 
 
@@ -446,6 +423,29 @@ write.csv(hflow, "output/hattah_pred_lev.csv")
 
 
 
+```{r lowbidgee}
+
+# generalised linear model
+M1 <- glm(l.Red_lev ~ l.Hay_lev, data=lflow.m %>% filter(nH >= 29, nR >= 29), na.action = na.omit)
+summary(M1)
+cor.test(lflow.m$l.Hay_lev, lflow.m$l.Red_lev)
+# 
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left test for equal variances, top right normality 
+# without log transformation, looks terrible
+# still really weird qqplot with log-log transformation
+par(mfrow = c(1, 1))
+ggplot(lflow.m, aes(l.Hay_lev, l.Red_lev), na.rm = TRUE) +
+  geom_point() # test for linear relationship
+# linear relationship assumption is fine
+
+# predict
+ggemmeans.lev <- ggemmeans(M1, terms = c("l.Hay_lev[all]"))
+
+plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay level",y="Redbank level",title="")
+```
 
 
 
@@ -453,7 +453,7 @@ write.csv(hflow, "output/hattah_pred_lev.csv")
 
 ```{r Cumbung Inundation area vs Booligal discharge}
 # generalised linear model
-M1 <- glm(l.Bool_dis ~ l.area.km2, data=cinun)
+M1 <- glm(l.area.km2 ~ l.Bool_dis, data=cinun)
 summary(M1)
 cor.test(cinun$l.Bool_dis, cinun$l.area.km2)
 
@@ -468,16 +468,22 @@ ggplot(cinun, aes(l.Bool_dis, l.area.km2)) +
 # log-log relationship looks roughly linear
 
 # predict
+cinun$predict.l <- predict(M1, cinun)
+# create a variable that is predicted log inundation area
+cinun$predict <- exp(cinun$predict.l)
+# back transform 
+plot(cinun$area.km2 ~ cinun$predict)
+
+
+
+# visualise relationship between original and predicted inundation
 ggemmeans.Inun <- ggemmeans(M1, terms = c("l.area.km2[all]")) # this must specify the second term listed in glm
 
 plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="log Booligal discharge",y="log Cumbung inundation area",title="")
 
-# better way to back-transform?
-# predict l.area.km2 based on l.Bool_dis relationship
-cinun <- cinun %>% mutate(pred.l.area.km2 = (l.Bool_dis*1.00212 - 3.16356),
-                          pred.area.km2 = exp(pred.l.area.km2))
-ggplot(cinun, aes(area.km2, pred.area.km2)) +
-  geom_point()
+
+# export
+write.csv(cinun, "output/cbool_pred_inun.csv")
 ```
 
 
@@ -509,8 +515,8 @@ ggplot(ctrend, aes(x = Year, y = Inun_5yr)) +
 
 
 ```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:69], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:69], 1946, 2020)
+TS.Dis <- ts(btrend$Discharge[1:71], 1946, 2020)
+TS.Flood <- ts(btrend$Flood[1:71], 1946, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -524,8 +530,8 @@ ggplot(btrend, aes(x = Year, y = Flood)) +
 
 
 ```{r gwydir}
-TS.Dis <- ts(gtrend$Discharge[1:50], 1930, 2020)
-TS.Flood <- ts(gtrend$Flood[1:50], 1930, 2020)
+TS.Dis <- ts(gtrend$Discharge[1:52], 1930, 2020)
+TS.Flood <- ts(gtrend$Flood[1:52], 1930, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -540,7 +546,7 @@ ggplot(gtrend, aes(x = Year, y = Flood)) +
 
 
 ```{r hattah}
-TS.Dis <- ts(htrend$Discharge[1:106], 1913, 2020)
+TS.Dis <- ts(htrend$Discharge[1:110], 1913, 2020)
 #TS.Flood <- ts(htrend$Flood[1:75], 1946, 2020)
 
 MannKendall(TS.Dis)
@@ -556,24 +562,24 @@ ggplot(htrend, aes(x = Year, y = Discharge)) +
 
 
 ```{r lowbidgee}
-TS.Dis <- ts(ltrend$Discharge[1:92], 1915, 2020)
-#TS.Flood <- ts(ltrend$Flood[1:75], 1946, 2020)
+TS.Dis <- ts(ltrend$Discharge[1:108], 1915, 2020)
+TS.Flood <- ts(ltrend$Flood[63:108], 1976, 2020)
 
 MannKendall(TS.Dis)
-#MannKendall(TS.Flood)
+MannKendall(TS.Flood)
 
 ggplot(ltrend, aes(x = Year, y = Discharge)) +
   geom_line()
 
-#ggplot(ltrend, aes(x = Year, y = Flood)) +
- # geom_line()
+ggplot(ltrend, aes(x = Year, y = Flood)) +
+  geom_line()
 ```
 
 
 
 ```{r macquarie}
-TS.Dis <- ts(mtrend$Discharge[1:66], 1955, 2020)
-TS.Flood <- ts(mtrend$Flood[1:66], 1955, 2020)
+TS.Dis <- ts(mtrend$Discharge[1:64], 1955, 2018)
+TS.Flood <- ts(mtrend$Flood[1:64], 1955, 2018)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -588,8 +594,8 @@ ggplot(mtrend, aes(x = Year, y = Flood)) +
 
 
 ```{r paroo}
-TS.Dis <- ts(ptrend$Discharge[1:45], 1976, 2020)
-TS.Flood <- ts(ptrend$Flood[1:45], 1976, 2020)
+TS.Dis <- ts(ptrend$Discharge[1:47], 1976, 2020)
+TS.Flood <- ts(ptrend$Flood[1:47], 1976, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -604,8 +610,8 @@ ggplot(ptrend, aes(x = Year, y = Flood)) +
 
 
 ```{r riverland}
-TS.Dis <- ts(rtrend$Discharge[1:119], 1902, 2020)
-TS.Flood <- ts(rtrend$Flood[1:46], 1975, 2020)
+TS.Dis <- ts(rtrend$Discharge[1:121], 1902, 2020)
+TS.Flood <- ts(rtrend$Flood[75:121], 1975, 2020)
 
 MannKendall(TS.Dis)
 MannKendall(TS.Flood)
@@ -634,4 +640,789 @@ ggplot(ytrend, aes(x = Year, y = Flood)) +
 ```
 
 
-# Time series analysis - quantify
+# Discharge Time series analysis - generalised linear models
+
+```{r cumbung}
+# remove years with too few data
+cflow.WY.c <- cflow.WY %>% filter(nBd >= 347)
+
+M1 <- glm(predict ~ wateryear, data = cflow.WY.c)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # OK
+par(mfrow = c(1, 1)) 
+ggplot(cflow.WY.c, aes(wateryear, predict), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+cflow.WY.c$predict.Time <- predict(M1, cflow.WY.c)
+# create a variable that is predicted four mile discharge over time
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="Predicted Four mile weir discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(cflow.WY.c$predict, cflow.WY.c$wateryear)
+
+
+# calculate differences over time
+100-(cflow.WY.c$predict.Time[length(cflow.WY.c$predict.Time)]/cflow.WY.c$predict.Time[1]*100)
+```
+
+
+
+```{r booligal}
+# remove years with too few data
+cflow.WY.b <- cflow.WY %>% filter(nBd >= 347)
+
+M1 <- glm(l.Bool_dis ~ wateryear, data = cflow.WY.b)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(cflow.WY.b, aes(wateryear, l.Bool_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+cflow.WY.b$predict.Time.l <- predict(M1, cflow.WY.b)
+# create a variable that is predicted log booligal discharge over time
+cflow.WY.b$predict.Time <- exp(cflow.WY.b$predict.Time.l)-1
+plot(cflow.WY.b$Bool_dis ~ cflow.WY.b$predict.Time)
+plot(cflow.WY.b$predict.Time ~ cflow.WY.b$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Booligal discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(cflow.WY.b$l.Bool_dis, cflow.WY.b$wateryear)
+
+
+# calculate differences over time
+100-(cflow.WY.b$predict.Time[length(cflow.WY.b$predict.Time)]/cflow.WY.b$predict.Time[1]*100)
+```
+
+
+
+```{r gwydir}
+# remove years with too few data
+gflow.WY.g <- gflow.WY %>% filter(nYd >= 347)
+
+M1 <- glm(l.Yarr_dis ~ wateryear, data = gflow.WY.g)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(gflow.WY.g, aes(wateryear, l.Yarr_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+gflow.WY.g$predict.Time.l <- predict(M1, gflow.WY.g)
+# create a variable that is predicted log gwydir discharge over time
+gflow.WY.g$predict.Time <- exp(gflow.WY.g$predict.Time.l)-1
+plot(gflow.WY.g$Yarr_dis ~ gflow.WY.g$predict.Time)
+plot(gflow.WY.g$predict.Time ~ gflow.WY.g$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Gwydir discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(gflow.WY.g$l.Yarr_dis, gflow.WY.g$wateryear)
+
+
+# calculate differences over time
+100-(gflow.WY.g$predict.Time[length(gflow.WY.g$predict.Time)]/gflow.WY.g$predict.Time[1]*100)
+```
+
+
+```{r hattah}
+# remove years with too few data
+hflow.WY.h <- hflow.WY %>% filter(nBd >= 347)
+
+M1 <- glm(predict ~ wateryear, data = hflow.WY.h)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # non-transformed data looks ok
+par(mfrow = c(1, 1)) 
+ggplot(hflow.WY.h, aes(wateryear, predict), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+hflow.WY.h$predict.Time <- predict(M1, hflow.WY.h)
+# create a variable that is predicted hattah discharge over time
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="predicted Colignan discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(hflow.WY.h$predict, hflow.WY.h$wateryear)
+
+
+# calculate differences over time
+100-(hflow.WY.h$predict.Time[length(hflow.WY.h$predict.Time)]/hflow.WY.h$predict.Time[1]*100)
+```
+
+
+```{r lowbidgee}
+# remove years with too few data
+lflow.WY.l <- lflow.WY %>% filter(nHd >= 347)
+
+M1 <- glm(predict.l ~ wateryear, data = lflow.WY.l)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(cflow.WY, aes(wateryear, predict), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+lflow.WY.l$predict.Time.l <- predict(M1, lflow.WY.l)
+# create a variable that is predicted log booligal discharge over time
+lflow.WY.l$predict.Time <- exp(lflow.WY.l$predict.Time.l)-1
+plot(lflow.WY.l$predict ~ lflow.WY.l$predict.Time)
+plot(lflow.WY.l$predict.Time ~ lflow.WY.l$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log predicted Redbank discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(lflow.WY.l$predict.l, lflow.WY.l$wateryear)
+
+
+# calculate differences over time
+100-(lflow.WY.l$predict.Time[length(lflow.WY.l$predict.Time)]/lflow.WY.l$predict.Time[1]*100)
+```
+
+
+```{r macquarie}
+# remove years with too few data
+mflow.WY.m <- mflow.WY %>% filter(nOd >= 347)
+
+M1 <- glm(l.ox_dis ~ wateryear, data = mflow.WY.m)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) #  log looks somewhat better?
+par(mfrow = c(1, 1)) 
+ggplot(mflow.WY.m, aes(wateryear, l.ox_dis), na.rm = TRUE) +
+  geom_point() 
+# without transformation, the trend looks somewhat non-linear, decreases massively from 1955 to 1980 then decreases more slowly
+# log is better
+
+
+# predict
+mflow.WY.m$predict.Time.l <- predict(M1, mflow.WY.m)
+# create a variable that is predicted log booligal discharge over time
+mflow.WY.m$predict.Time <- exp(mflow.WY.m$predict.Time.l)-1
+plot(mflow.WY.m$ox_dis ~ mflow.WY.m$predict.Time)
+plot(mflow.WY.m$predict.Time ~ mflow.WY.m$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="Log Oxley discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(mflow.WY.m$l.ox_dis, mflow.WY.m$wateryear)
+
+
+# calculate differences over time
+100-(mflow.WY.m$predict.Time[length(mflow.WY.m$predict.Time)]/mflow.WY.m$predict.Time[1]*100)
+```
+
+
+```{r paroo}
+# remove years with too few data
+pflow.WY.p <- pflow.WY %>% filter(nWd >= 347)
+
+M1 <- glm(l.will_dis ~ wateryear, data = pflow.WY.p)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # log is better
+par(mfrow = c(1, 1)) 
+ggplot(pflow.WY.p, aes(wateryear, will_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+pflow.WY.p$predict.Time.l <- predict(M1, pflow.WY.p)
+# create a variable that is predicted log booligal discharge over time
+pflow.WY.p$predict.Time <- exp(pflow.WY.p$predict.Time.l)-1
+plot(pflow.WY.p$will_dis ~ pflow.WY.p$predict.Time)
+plot(pflow.WY.p$predict.Time ~ pflow.WY.p$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Willara Xing discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(pflow.WY.p$l.Bool_dis, pflow.WY.p$wateryear)
+# not significant
+
+
+# calculate differences over time
+100-(pflow.WY.p$predict.Time[length(pflow.WY.p$predict.Time)]/pflow.WY.p$predict.Time[1]*100)
+```
+
+
+```{r riverland}
+# remove years with too few data
+rflow.WY.r <- rflow.WY %>% filter(nFd >= 347)
+
+M1 <- glm(l.Flows_dis ~ wateryear, data = rflow.WY.r)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(rflow.WY.r, aes(wateryear, l.Flows_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+rflow.WY.r$predict.Time.l <- predict(M1, rflow.WY.r)
+# create a variable that is predicted log booligal discharge over time
+rflow.WY.r$predict.Time <- exp(rflow.WY.r$predict.Time.l)-1
+plot(rflow.WY.r$Flows_dis ~ rflow.WY.r$predict.Time)
+plot(rflow.WY.r$predict.Time ~ rflow.WY.r$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Flows to SA discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(rflow.WY.r$l.Flows_dis, rflow.WY.r$wateryear)
+
+
+# calculate differences over time
+100-(rflow.WY.r$predict.Time[length(rflow.WY.r$predict.Time)]/rflow.WY.r$predict.Time[1]*100)
+```
+
+
+```{r yantabulla}
+# remove years with too few data
+yflow.WY.y <- yflow.WY %>% filter(nTd >= 347)
+
+M1 <- glm(l.Tur_dis ~ wateryear, data = yflow.WY.y)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(yflow.WY.y, aes(wateryear, l.Tur_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+yflow.WY.y$predict.Time.l <- predict(M1, yflow.WY.y)
+# create a variable that is predicted log booligal discharge over time
+yflow.WY.y$predict.Time <- exp(yflow.WY.y$predict.Time.l)-1
+plot(yflow.WY.y$Tur_dis ~ yflow.WY.y$predict.Time)
+plot(yflow.WY.y$predict.Time ~ yflow.WY.y$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Turra discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(yflow.WY.y$l.Tur_dis, yflow.WY.y$wateryear)
+# not significant
+
+
+# calculate differences over time
+100-(yflow.WY.y$predict.Time[length(yflow.WY.y$predict.Time)]/yflow.WY.y$predict.Time[1]*100)
+
+#exp(coef(wateryear))
+```
+
+
+# Extract flood frequency data from water level using bankfull levels
+
+```{r}
+
+```
+
+
+
+# Flood time series analysis - generalised linear models
+
+
+```{r cumbung}
+# remove years with too few data
+cflow.WY.c <- cflow.WY %>% filter(nBd >= 347)
+
+M1 <- glm(predict ~ wateryear, data = cflow.WY.c)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # OK
+par(mfrow = c(1, 1)) 
+ggplot(cflow.WY.c, aes(wateryear, predict), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+cflow.WY.c$predict.Time <- predict(M1, cflow.WY.c)
+# create a variable that is predicted four mile discharge over time
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="Predicted Four mile weir discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(cflow.WY.c$predict, cflow.WY.c$wateryear)
+
+
+# calculate differences over time
+100-(cflow.WY.c$predict.Time[length(cflow.WY.c$predict.Time)]/cflow.WY.c$predict.Time[1]*100)
+```
+
+
+
+```{r booligal}
+# remove years with too few data
+cflow.WY.b <- cflow.WY %>% filter(nBd >= 347)
+
+M1 <- glm(l.Bool_dis ~ wateryear, data = cflow.WY.b)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(cflow.WY.b, aes(wateryear, l.Bool_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+cflow.WY.b$predict.Time.l <- predict(M1, cflow.WY.b)
+# create a variable that is predicted log booligal discharge over time
+cflow.WY.b$predict.Time <- exp(cflow.WY.b$predict.Time.l)-1
+plot(cflow.WY.b$Bool_dis ~ cflow.WY.b$predict.Time)
+plot(cflow.WY.b$predict.Time ~ cflow.WY.b$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Booligal discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(cflow.WY.b$l.Bool_dis, cflow.WY.b$wateryear)
+
+
+# calculate differences over time
+100-(cflow.WY.b$predict.Time[length(cflow.WY.b$predict.Time)]/cflow.WY.b$predict.Time[1]*100)
+```
+
+
+
+```{r gwydir}
+# remove years with too few data
+gflow.WY.g <- gflow.WY %>% filter(nYd >= 347)
+
+M1 <- glm(l.Yarr_dis ~ wateryear, data = gflow.WY.g)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(gflow.WY.g, aes(wateryear, l.Yarr_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+gflow.WY.g$predict.Time.l <- predict(M1, gflow.WY.g)
+# create a variable that is predicted log gwydir discharge over time
+gflow.WY.g$predict.Time <- exp(gflow.WY.g$predict.Time.l)-1
+plot(gflow.WY.g$Yarr_dis ~ gflow.WY.g$predict.Time)
+plot(gflow.WY.g$predict.Time ~ gflow.WY.g$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Gwydir discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(gflow.WY.g$l.Yarr_dis, gflow.WY.g$wateryear)
+
+
+# calculate differences over time
+100-(gflow.WY.g$predict.Time[length(gflow.WY.g$predict.Time)]/gflow.WY.g$predict.Time[1]*100)
+```
+
+
+```{r hattah}
+# remove years with too few data
+hflow.WY.h <- hflow.WY %>% filter(nBd >= 347)
+
+M1 <- glm(predict ~ wateryear, data = hflow.WY.h)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # non-transformed data looks ok
+par(mfrow = c(1, 1)) 
+ggplot(hflow.WY.h, aes(wateryear, predict), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+hflow.WY.h$predict.Time <- predict(M1, hflow.WY.h)
+# create a variable that is predicted hattah discharge over time
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="predicted Colignan discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(hflow.WY.h$predict, hflow.WY.h$wateryear)
+
+
+# calculate differences over time
+100-(hflow.WY.h$predict.Time[length(hflow.WY.h$predict.Time)]/hflow.WY.h$predict.Time[1]*100)
+```
+
+
+```{r lowbidgee}
+# remove years with too few data
+lflow.WY.l <- lflow.WY %>% filter(nHd >= 347)
+
+M1 <- glm(predict.l ~ wateryear, data = lflow.WY.l)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(cflow.WY, aes(wateryear, predict), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+lflow.WY.l$predict.Time.l <- predict(M1, lflow.WY.l)
+# create a variable that is predicted log booligal discharge over time
+lflow.WY.l$predict.Time <- exp(lflow.WY.l$predict.Time.l)-1
+plot(lflow.WY.l$predict ~ lflow.WY.l$predict.Time)
+plot(lflow.WY.l$predict.Time ~ lflow.WY.l$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log predicted Redbank discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(lflow.WY.l$predict.l, lflow.WY.l$wateryear)
+
+
+# calculate differences over time
+100-(lflow.WY.l$predict.Time[length(lflow.WY.l$predict.Time)]/lflow.WY.l$predict.Time[1]*100)
+```
+
+
+```{r macquarie}
+# remove years with too few data
+mflow.WY.m <- mflow.WY %>% filter(nOd >= 347)
+
+M1 <- glm(l.ox_dis ~ wateryear, data = mflow.WY.m)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) #  log looks somewhat better?
+par(mfrow = c(1, 1)) 
+ggplot(mflow.WY.m, aes(wateryear, l.ox_dis), na.rm = TRUE) +
+  geom_point() 
+# without transformation, the trend looks somewhat non-linear, decreases massively from 1955 to 1980 then decreases more slowly
+# log is better
+
+
+# predict
+mflow.WY.m$predict.Time.l <- predict(M1, mflow.WY.m)
+# create a variable that is predicted log booligal discharge over time
+mflow.WY.m$predict.Time <- exp(mflow.WY.m$predict.Time.l)-1
+plot(mflow.WY.m$ox_dis ~ mflow.WY.m$predict.Time)
+plot(mflow.WY.m$predict.Time ~ mflow.WY.m$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="Log Oxley discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(mflow.WY.m$l.ox_dis, mflow.WY.m$wateryear)
+
+
+# calculate differences over time
+100-(mflow.WY.m$predict.Time[length(mflow.WY.m$predict.Time)]/mflow.WY.m$predict.Time[1]*100)
+```
+
+
+```{r paroo}
+# remove years with too few data
+pflow.WY.p <- pflow.WY %>% filter(nWd >= 347)
+
+M1 <- glm(l.will_dis ~ wateryear, data = pflow.WY.p)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # log is better
+par(mfrow = c(1, 1)) 
+ggplot(pflow.WY.p, aes(wateryear, will_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+pflow.WY.p$predict.Time.l <- predict(M1, pflow.WY.p)
+# create a variable that is predicted log booligal discharge over time
+pflow.WY.p$predict.Time <- exp(pflow.WY.p$predict.Time.l)-1
+plot(pflow.WY.p$will_dis ~ pflow.WY.p$predict.Time)
+plot(pflow.WY.p$predict.Time ~ pflow.WY.p$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Willara Xing discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(pflow.WY.p$l.Bool_dis, pflow.WY.p$wateryear)
+# not significant
+
+
+# calculate differences over time
+100-(pflow.WY.p$predict.Time[length(pflow.WY.p$predict.Time)]/pflow.WY.p$predict.Time[1]*100)
+```
+
+
+```{r riverland}
+# remove years with too few data
+rflow.WY.r <- rflow.WY %>% filter(nFd >= 347)
+
+M1 <- glm(l.Flows_dis ~ wateryear, data = rflow.WY.r)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(rflow.WY.r, aes(wateryear, l.Flows_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+rflow.WY.r$predict.Time.l <- predict(M1, rflow.WY.r)
+# create a variable that is predicted log booligal discharge over time
+rflow.WY.r$predict.Time <- exp(rflow.WY.r$predict.Time.l)-1
+plot(rflow.WY.r$Flows_dis ~ rflow.WY.r$predict.Time)
+plot(rflow.WY.r$predict.Time ~ rflow.WY.r$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Flows to SA discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(rflow.WY.r$l.Flows_dis, rflow.WY.r$wateryear)
+
+
+# calculate differences over time
+100-(rflow.WY.r$predict.Time[length(rflow.WY.r$predict.Time)]/rflow.WY.r$predict.Time[1]*100)
+```
+
+
+```{r yantabulla}
+# remove years with too few data
+yflow.WY.y <- yflow.WY %>% filter(nTd >= 347)
+
+M1 <- glm(l.Tur_dis ~ wateryear, data = yflow.WY.y)
+
+# assumptions
+par(mfrow = c(2, 2))
+plot(M1) # use log
+par(mfrow = c(1, 1)) 
+ggplot(yflow.WY.y, aes(wateryear, l.Tur_dis), na.rm = TRUE) +
+  geom_point() 
+# no obvious non-linear trends
+
+
+# predict
+yflow.WY.y$predict.Time.l <- predict(M1, yflow.WY.y)
+# create a variable that is predicted log booligal discharge over time
+yflow.WY.y$predict.Time <- exp(yflow.WY.y$predict.Time.l)-1
+plot(yflow.WY.y$Tur_dis ~ yflow.WY.y$predict.Time)
+plot(yflow.WY.y$predict.Time ~ yflow.WY.y$wateryear)
+
+
+# plot
+ggemmeans.dis <- ggemmeans(M1, terms = c("wateryear[all]"))
+
+plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="log Turra discharge (ML/day)",title="")
+
+
+# test
+summary(M1)
+cor.test(yflow.WY.y$l.Tur_dis, yflow.WY.y$wateryear)
+# not significant
+
+
+# calculate differences over time
+100-(yflow.WY.y$predict.Time[length(yflow.WY.y$predict.Time)]/yflow.WY.y$predict.Time[1]*100)
+
+#exp(coef(wateryear))
+```
+
+
+
+# Time series analysis - plot
+
+```{r time series plot functions}
+plot_dis <- function(dataset, title){
+  ggplot(dataset, aes(x = Year, y = Discharge)) +
+  geom_line()  + 
+  stat_smooth(method = lm) +
+  labs(x="",y="",title=title) +
+  theme_bw() +
+  geom_line(size = 1.2) +
+  #geom_col(aes(x = Year, y = missing_dis), width = 31, fill = "#f0f0f0") + # not working yet
+  theme(text = element_text(size = 32), # change font size
+        axis.text = element_text(size = 28),
+        plot.margin = margin(10,20,10,10), # give extra space on RHS
+        plot.title = element_text(hjust = 0.5)) # centre title
+}
+```
+
+```{r make discharge plots}
+bd <- plot_dis(btrend, "Booligal Wetlands") +
+  scale_x_continuous(breaks = c(1945,1970,2000,2020))
+cd <- plot_dis(ctrend, "Great Cumbung Swamp") + # need to add data!
+  scale_x_continuous(breaks = c(1945,1970,2000,2020))  +
+  labs(x="",y="Discharge (ML/day)") +
+  theme(axis.title = element_text(size = 60))
+gd <- plot_dis(gtrend, "Gwydir Wetlands") +
+  scale_x_continuous(breaks = c(1930,1960,1990,2020))
+hd <- plot_dis(htrend, "Hattah Lakes") +
+  scale_x_continuous(breaks = c(1910,1950,1990,2020)) +
+  labs(x="Year",y="") +
+  theme(axis.title = element_text(size = 60))
+ld <- plot_dis(ltrend, "Lowbidgee Wetlands") +
+  scale_x_continuous(breaks = c(1910,1950,1990,2020))
+ld
+md <- plot_dis(mtrend, "Macquarie Marshes") +
+  scale_x_continuous(breaks = c(1960,1980,2000,2018)) +
+  labs(x="",y="Discharge (ML/day)") +
+  theme(axis.title = element_text(size = 60))
+pd <- plot_dis(ptrend, "Paroo Overflow Swamps") +
+  labs(x="Year",y="Discharge (ML/day)") +
+  theme(text = element_text(size = 30),
+        axis.title = element_text(size = 60))
+rd <- plot_dis(rtrend, "Murray Riverlands") +
+  labs(x="Year",y="") +
+  theme(axis.title = element_text(size = 60)) +
+  scale_x_continuous(breaks = c(1900,1930,1960,1990,2020))
+rd
+yd <- plot_dis(ytrend, "Yantabulla Swamps") +
+  scale_x_continuous(breaks = c(1994,2000,2010,2020))
+
+```
+
+```{r combine discharge plots}
+# export at 2100 x 2700 
+# add asterisks for significance
+# order in terms of significance or standard order
+
+bird <- ggarrange(cd, bd, ld, md, gd, yd, pd, rd, hd,
+          ncol = 3, nrow = 3)
+bird
+
+
+# if only one title on each axis
+
+#annotate_figure(bird, bottom = text_grob("Year                          Year                         Year",  size = 60, just = "bottom"), left = text_grob("Discharge (ML/day)         Discharge (ML/day)         Discharge (ML/day)", size = 60, rot = 90)) # rotate 90 degrees
+# just = "bottom" helps text not be cut off
+```
+
