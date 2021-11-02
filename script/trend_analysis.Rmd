@@ -400,7 +400,7 @@ Using GAMs instead of GLMs as GLMs don't fit well and assumptions aren't accepta
 
 ```{r Cumbung}
 # modelling monthly data
-m <- gam(l.Bool_lev ~   s(l.Four_lev, k=3), data=cflow.m %>% filter(nB >= 29, nF >= 29) %>%  subset(Bool_levA > 0, Four_levA > 0))
+m <- gam(Four_levA ~   s(Bool_levA, k=3), data=cflow.m %>% filter(nB >= 29, nF >= 29) %>%  subset(Bool_levA > 0, Four_levA > 0))
 # k = 3 is 3rd order polynomial
 # only include months with >95% data and water levels above zero
 
@@ -408,18 +408,17 @@ m <- gam(l.Bool_lev ~   s(l.Four_lev, k=3), data=cflow.m %>% filter(nB >= 29, nF
 # check normality and equal variances (linearity is not necessary)
 par(mfrow = c(2, 2))
 gam.check(m) # residual plots for GAMs
-# need to log-transform to improve normality
+# normality seems ok, a bit strange but doesn't improve much with transformation
 
 # predict
-cflow.m$predict.l <- predict(m)
-cflow.m$predict <- exp(cflow.m$predict.l) - 1
+cflow.m$predict <- predict(m,newdata = cflow.m)
 
 # plot
-ggpredict <- ggemmeans(m, terms = c("l.Four_lev [all]"))
+ggpredict <- ggemmeans(m, terms = c("Bool_levA [all]"))
 print(ggplot(ggpredict,aes(x = x, y = predicted))+
         geom_ribbon(aes(ymin =conf.low, ymax = conf.high),alpha=0.2) +
         geom_line(size=0.5)+
-        geom_point(data=cflow.m %>% filter(nB >= 29, nF >= 29) %>%  subset(Bool_levA > 0, Four_levA > 0), aes(y=l.Bool_lev, x=l.Four_lev))+
+        geom_point(data=cflow.m %>% filter(nB >= 29, nF >= 29) %>%  subset(Bool_levA > 0, Four_levA > 0), aes(x=Bool_levA, y=Four_levA))+
         labs(colour = get_legend_title(ggpredict),
              x = get_x_title(ggpredict),
              y = get_y_title(ggpredict),
@@ -437,20 +436,14 @@ print(ggplot(ggpredict,aes(x = x, y = predicted))+
               axis.title.x = element_text(size = 15))  + 
         #scale_y_continuous(limits = c(0,1)) + 
         scale_x_continuous(labels = scales::comma)+
-        labs(x="Log Booligal water level", y=paste0("Log Cumbung water level")))
+        labs(x="Booligal water level (m)", y=paste0("Cumbung water level (m)")))
 
 ```
 
 
 ```{r Hattah}
-# prep data
-#hflow.m <- hflow.m %>% 
-#  subset(Bar_levA > 0, Col_levA > 0) %>% # remove negative water level data
-#  filter(nB >= 29, nC >= 29) # only include months with >95% data
-
-
 # modelling monthly data
-m <- gam(Bar_levA ~   s(Col_levA, k=3), data=hflow.m %>% filter(nB >= 29, nC >= 29) %>%  subset(Bar_levA > 0, Col_levA > 0))
+m <- gam(l.Col_lev ~   s(l.Bar_lev, k=3), data=hflow.m %>% filter(nB >= 29, nC >= 29) %>%  subset(Bar_levA > 0, Col_levA > 0))
 # k = 3 is 3rd order polynomial
 # only include months with >95% data and water levels above zero
 
@@ -458,16 +451,19 @@ m <- gam(Bar_levA ~   s(Col_levA, k=3), data=hflow.m %>% filter(nB >= 29, nC >= 
 # check normality and equal variances (linearity is not necessary)
 par(mfrow = c(2, 2))
 gam.check(m) # residual plots for GAMs
+# normality somewhat better with log transformed
 
 # predict
-hflow.m$predict <- predict(m)
+hflow.m$predict.l <- predict(m,newdata = hflow.m)
+hflow.m$predict <- exp(hflow.m$predict.l) + 1
+
 
 # plot
-ggpredict <- ggemmeans(m, terms = c("Col_levA [all]"))
+ggpredict <- ggemmeans(m, terms = c("l.Bar_lev [all]"))
 print(ggplot(ggpredict,aes(x = x, y = predicted))+
         geom_ribbon(aes(ymin =conf.low, ymax = conf.high),alpha=0.2) +
         geom_line(size=0.5)+
-        geom_point(data=hflow.m %>% filter(nB >= 29, nC >= 29) %>%  subset(Bar_levA > 0, Col_levA > 0), aes(y=Bar_levA, x=Col_levA))+
+        geom_point(data=hflow.m %>% filter(nB >= 29, nC >= 29) %>%  subset(Bar_levA > 0, Col_levA > 0), aes(x=l.Bar_lev, y=l.Col_lev))+
         labs(colour = get_legend_title(ggpredict),
              x = get_x_title(ggpredict),
              y = get_y_title(ggpredict),
@@ -479,19 +475,18 @@ print(ggplot(ggpredict,aes(x = x, y = predicted))+
               plot.background = element_blank(),
               panel.background = element_rect(fill =  NA), 
               panel.border = element_rect(fill=NA),
-              axis.text.y = element_text(size = 10),
-              axis.text.x = element_text(size = 15),
+              axis.text = element_text(size = 15),
               axis.title.y = element_text(size = 15, vjust= 1),
               axis.title.x = element_text(size = 15))  + 
         #scale_y_continuous(limits = c(0,1)) + 
         scale_x_continuous(labels = scales::comma)+
-        labs(x="Avg.Bar.M [GL]", y=paste0("Avg.Col.M")))
+        labs(x="Barham water level (log m)", y=paste0("Colignan water level (log m)")))
 ```
 
 
 ```{r Lowbidgee}
 # modelling monthly data
-m <- gam(Hay_levA ~   s(Red_levA, k=3), data=lflow.m %>% filter(nH >= 29, nR >= 29) %>%  subset(Hay_levA > 0, Red_levA > 0))
+m <- gam(Red_levA ~   s(Hay_levA, k=3), data=lflow.m %>% filter(nH >= 29, nR >= 29) %>%  subset(Hay_levA > 0, Red_levA > 0))
 # k = 3 is 3rd order polynomial
 # only include months with >95% data and water levels above zero
 
@@ -500,14 +495,14 @@ par(mfrow = c(2, 2))
 gam.check(m) # residual plots for GAMs
 
 # predict
-lflow.m$predict <- predict(m)
+lflow.m$predict <- predict(m,newdata = lflow.m)
 
 # plot
-ggpredict <- ggemmeans(m, terms = c("Red_levA [all]"))
+ggpredict <- ggemmeans(m, terms = c("Hay_levA [all]"))
 print(ggplot(ggpredict,aes(x = x, y = predicted))+
         geom_ribbon(aes(ymin =conf.low, ymax = conf.high),alpha=0.2) +
         geom_line(size=0.5)+
-        geom_point(data=lflow.m %>% filter(nH >= 29, nR >= 29) %>%  subset(Hay_levA > 0, Red_levA > 0), aes(y=Hay_levA, x=Red_levA))+
+        geom_point(data=lflow.m %>% filter(nH >= 29, nR >= 29) %>%  subset(Hay_levA > 0, Red_levA > 0), aes(x=Hay_levA, y=Red_levA))+
         labs(colour = get_legend_title(ggpredict),
              x = get_x_title(ggpredict),
              y = get_y_title(ggpredict),
@@ -525,155 +520,18 @@ print(ggplot(ggpredict,aes(x = x, y = predicted))+
               axis.title.x = element_text(size = 15))  + 
         #scale_y_continuous(limits = c(0,1)) + 
         scale_x_continuous(labels = scales::comma)+
-        labs(x="Avg.Bar.M [GL]", y=paste0("Avg.Col.M")))
+        labs(x="Hay water level (m)", y=paste0("Redbank water level (m)")))
 ```
 
 
 
-# Time series analysis - Kendall rank correlations
+# Extract flood frequency data from water level using bankfull levels
 
-```{r cumbung}
-#TS.Dis <- ts(ctrend$Discharge[1:75], 1946, 2020)
-TS.Inun <- ts(ctrend$Inun_area[42:75], 1987, 2020)
-#TS.Flood <- ts(ctrend$Flood_days[1:75], 1946, 2020)
+```{r}
 
-#MannKendall(TS.Dis)
-MannKendall(TS.Inun)
-#MannKendall(TS.Flood)
-
-ggplot(ctrend, aes(x = Year, y = Inun_area)) +
-  geom_line()
-
-ggplot(ctrend, aes(x = Year, y = Inun_5yr)) +
-  geom_line() +
-  stat_smooth(method = lm)
-
-#ggplot(ctrend, aes(x = Year, y = Discharge)) +
-  #geom_line()
-
-#ggplot(ctrend, aes(x = Year, y = Flood_days)) +
-  #geom_line()
 ```
 
 
-```{r booligal}
-TS.Dis <- ts(btrend$Discharge[1:71], 1946, 2020)
-TS.Flood <- ts(btrend$Flood[1:71], 1946, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(btrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(btrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-```{r gwydir}
-TS.Dis <- ts(gtrend$Discharge[1:52], 1930, 2020)
-TS.Flood <- ts(gtrend$Flood[1:52], 1930, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(gtrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(gtrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-```{r hattah}
-TS.Dis <- ts(htrend$Discharge[1:110], 1913, 2020)
-#TS.Flood <- ts(htrend$Flood[1:75], 1946, 2020)
-
-MannKendall(TS.Dis)
-#MannKendall(TS.Flood)
-
-ggplot(htrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-#ggplot(htrend, aes(x = Year, y = Flood)) +
-  #geom_line()
-```
-
-
-```{r lowbidgee}
-TS.Dis <- ts(ltrend$Discharge[1:108], 1915, 2020)
-TS.Flood <- ts(ltrend$Flood[63:108], 1976, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(ltrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(ltrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-```{r macquarie}
-TS.Dis <- ts(mtrend$Discharge[1:64], 1955, 2018)
-TS.Flood <- ts(mtrend$Flood[1:64], 1955, 2018)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(mtrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(mtrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-```{r paroo}
-TS.Dis <- ts(ptrend$Discharge[1:47], 1976, 2020)
-TS.Flood <- ts(ptrend$Flood[1:47], 1976, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(ptrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(ptrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-```{r riverland}
-TS.Dis <- ts(rtrend$Discharge[1:121], 1902, 2020)
-TS.Flood <- ts(rtrend$Flood[75:121], 1975, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(rtrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(rtrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
-
-
-```{r yantabulla}
-TS.Dis <- ts(ytrend$Discharge[1:27], 1994, 2020)
-TS.Flood <- ts(ytrend$Flood[1:27], 1994, 2020)
-
-MannKendall(TS.Dis)
-MannKendall(TS.Flood)
-
-ggplot(ytrend, aes(x = Year, y = Discharge)) +
-  geom_line()
-
-ggplot(ytrend, aes(x = Year, y = Flood)) +
-  geom_line()
-```
 
 
 # Discharge Time series analysis - generalised linear models
@@ -1130,18 +988,14 @@ cor.test(inun$predict, inun$year)
 #exp(coef(year))
 ```
 
-# Extract flood frequency data from water level using bankfull levels
-
-```{r}
-
-```
-
-
-
 # Flood time series analysis - generalised linear models
 
 
 ```{r cumbung}
+# convert monthly data into annual data 
+
+
+
 # remove years with too few data
 cflow.WY.c <- cflow.WY %>% filter(nBd >= 347)
 
