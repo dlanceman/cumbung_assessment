@@ -7,6 +7,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Prepare data
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
@@ -75,8 +77,6 @@ str(rmflow)
 
 
 
-# Fill small data gaps in flow/flood with na.approx (zoo)
-
 ```{r fill gaps and log transform data}
 cflow <- cflow %>% mutate(Bool_dis = na.approx(Bool_dis, maxgap = 10, na.rm = TRUE),
                           Bool_lev = na.approx(Bool_lev, maxgap = 10, na.rm = TRUE),
@@ -137,38 +137,6 @@ yflow <- yflow %>% mutate(Wyan_lev = na.approx(Wyan_lev, maxgap = 10, na.rm = TR
                           l.Tur_dis = log(Tur_dis + 1),
                           l.Wyan_dis = log(Wyan_dis + 1),
                           l.Wyan_lev = log(Wyan_lev + 1)) 
-```
-
-
-Don't need to run this every time!
-```{r save these filled data into a new excel workbook}
-wb = createWorkbook()
-
-sheet = createSheet(wb, "cumbung")
-addDataFrame(cflow, sheet=sheet, startColumn=1)
-
-sheet = createSheet(wb, "hattah")
-addDataFrame(hflow, sheet=sheet, startColumn=1)
-
-sheet = createSheet(wb, "gwydir")
-addDataFrame(gflow, sheet=sheet, startColumn=1)
-
-sheet = createSheet(wb, "macquarie")
-addDataFrame(mflow, sheet=sheet, startColumn=1)
-
-sheet = createSheet(wb, "lowbidgee")
-addDataFrame(lflow, sheet=sheet, startColumn=1)
-
-sheet = createSheet(wb, "riverland")
-addDataFrame(rflow, sheet=sheet, startColumn=1)
-
-sheet = createSheet(wb, "yantabulla")
-addDataFrame(yflow, sheet=sheet, startColumn=1)
-
-saveWorkbook(wb, "output/filledflows.xlsx")
-# this process fails when "row.names = FALSE" is specified, so currently outputs with rownames (1-n)
-
-#write.csv(cflow, file = "output/fillflow/filledcumbungflows.csv")
 ```
 
 
@@ -260,10 +228,11 @@ inun <- merge(inun, cinun, by = 'year') %>%
 ```
 
 
-# GLMs for correlating annual data - discharge
+# GLMs for correlating annual discharge data
 
 ```{r Cumbung}
 # generalised linear model
+# filter data within the model so that the actual dataset remains unchanged
 M1 <- glm(l.Four_dis ~ l.Bool_dis, data=cflow.WY %>% filter(nFd >= 347, nBd >= 347), na.action = na.omit)
 
 # check assumptions
@@ -303,13 +272,13 @@ plot(cflow.WY$new ~ cflow.WY$predict)
 
 ```{r Hattah lakes}
 # generalised linear model
-M1 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow.WY, na.action = na.omit)
+M1 <- glm(l.Col_dis ~ l.Bar_dis, data=hflow.WY %>% filter(nCd >= 347, nBd >= 347), na.action = na.omit)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
 par(mfrow = c(1, 1))
-ggplot(hflow.WY, aes(l.Bar_dis, l.Col_dis), na.rm = TRUE) +
+ggplot(hflow.WY %>% filter(nCd >= 347, nBd >= 347), aes(l.Bar_dis, l.Col_dis), na.rm = TRUE) +
   geom_point()
 
 # log-transform makes normality and equal variance assumptions ok
@@ -345,13 +314,13 @@ plot(hflow.WY$new ~ hflow.WY$predict) # as expected
 
 ```{r Lowbidgee}
 # generalised linear model
-M1 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow.WY, na.action = na.omit)
+M1 <- glm(l.Red_dis ~ l.Hay_dis, data=lflow.WY %>% filter(nHd >= 347, nRd >= 347), na.action = na.omit)
 
 # check assumptions
 par(mfrow = c(2, 2))
 plot(M1) # top left test for equal variances, top right normality 
 par(mfrow = c(1, 1))
-ggplot(lflow.WY, aes(l.Hay_dis, l.Red_dis), na.rm = TRUE) +
+ggplot(lflow.WY %>% filter(nHd >= 347, nRd >= 347), aes(l.Hay_dis, l.Red_dis), na.rm = TRUE) +
   geom_point()
 
 # log-transform makes normality and equal variance assumptions good
@@ -429,17 +398,11 @@ plot(ggemmeans.Inun, facet = TRUE, colors = "hero", ci = T, add.data = TRUE, jit
 
 Using GAMs instead of GLMs as GLMs don't fit well and assumptions aren't acceptable.
 
-Add assumptions!
 ```{r Cumbung}
-# prep data
-cflow.m <- cflow.m %>% 
-  #subset(Bool_levA > 0, Four_levA > 0) %>% # remove negative water level data
-  filter(nB >= 29, nF >= 29) # only include months with >95% data
-
-
 # modelling monthly data
-m <- gam(l.Bool_lev ~   s(l.Four_lev, k=3), data=cflow.m)
+m <- gam(l.Bool_lev ~   s(l.Four_lev, k=3), data=cflow.m %>% filter(nB >= 29, nF >= 29) %>%  subset(Bool_levA > 0, Four_levA > 0))
 # k = 3 is 3rd order polynomial
+# only include months with >95% data and water levels above zero
 
 
 # check normality and equal variances (linearity is not necessary)
@@ -456,7 +419,7 @@ ggpredict <- ggemmeans(m, terms = c("l.Four_lev [all]"))
 print(ggplot(ggpredict,aes(x = x, y = predicted))+
         geom_ribbon(aes(ymin =conf.low, ymax = conf.high),alpha=0.2) +
         geom_line(size=0.5)+
-        geom_point(data=cflow.m, aes(y=l.Bool_lev, x=l.Four_lev))+
+        geom_point(data=cflow.m %>% filter(nB >= 29, nF >= 29) %>%  subset(Bool_levA > 0, Four_levA > 0), aes(y=l.Bool_lev, x=l.Four_lev))+
         labs(colour = get_legend_title(ggpredict),
              x = get_x_title(ggpredict),
              y = get_y_title(ggpredict),
@@ -481,14 +444,15 @@ print(ggplot(ggpredict,aes(x = x, y = predicted))+
 
 ```{r Hattah}
 # prep data
-hflow.m <- hflow.m %>% 
-  subset(Bar_levA > 0, Col_levA > 0) %>% # remove negative water level data
-  filter(nB >= 29, nC >= 29) # only include months with >95% data
+#hflow.m <- hflow.m %>% 
+#  subset(Bar_levA > 0, Col_levA > 0) %>% # remove negative water level data
+#  filter(nB >= 29, nC >= 29) # only include months with >95% data
 
 
 # modelling monthly data
-m <- gam(Bar_levA ~   s(Col_levA, k=3), data=hflow.m)
+m <- gam(Bar_levA ~   s(Col_levA, k=3), data=hflow.m %>% filter(nB >= 29, nC >= 29) %>%  subset(Bar_levA > 0, Col_levA > 0))
 # k = 3 is 3rd order polynomial
+# only include months with >95% data and water levels above zero
 
 
 # check normality and equal variances (linearity is not necessary)
@@ -503,7 +467,7 @@ ggpredict <- ggemmeans(m, terms = c("Col_levA [all]"))
 print(ggplot(ggpredict,aes(x = x, y = predicted))+
         geom_ribbon(aes(ymin =conf.low, ymax = conf.high),alpha=0.2) +
         geom_line(size=0.5)+
-        geom_point(data=hflow.m, aes(y=Bar_levA, x=Col_levA))+
+        geom_point(data=hflow.m %>% filter(nB >= 29, nC >= 29) %>%  subset(Bar_levA > 0, Col_levA > 0), aes(y=Bar_levA, x=Col_levA))+
         labs(colour = get_legend_title(ggpredict),
              x = get_x_title(ggpredict),
              y = get_y_title(ggpredict),
@@ -526,16 +490,10 @@ print(ggplot(ggpredict,aes(x = x, y = predicted))+
 
 
 ```{r Lowbidgee}
-# prep data
-lflow.m <- lflow.m %>% 
-  subset(Hay_levA > 0, Red_levA > 0) %>% # remove negative water level data
-  filter(nH >= 29, nR >= 29) # only include months with >95% data
-
-
 # modelling monthly data
-m <- gam(Hay_levA ~   s(Red_levA, k=3), data=lflow.m)
+m <- gam(Hay_levA ~   s(Red_levA, k=3), data=lflow.m %>% filter(nH >= 29, nR >= 29) %>%  subset(Hay_levA > 0, Red_levA > 0))
 # k = 3 is 3rd order polynomial
-
+# only include months with >95% data and water levels above zero
 
 # check normality and equal variances (linearity is not necessary)
 par(mfrow = c(2, 2))
@@ -549,7 +507,7 @@ ggpredict <- ggemmeans(m, terms = c("Red_levA [all]"))
 print(ggplot(ggpredict,aes(x = x, y = predicted))+
         geom_ribbon(aes(ymin =conf.low, ymax = conf.high),alpha=0.2) +
         geom_line(size=0.5)+
-        geom_point(data=lflow.m, aes(y=Hay_levA, x=Red_levA))+
+        geom_point(data=lflow.m %>% filter(nH >= 29, nR >= 29) %>%  subset(Hay_levA > 0, Red_levA > 0), aes(y=Hay_levA, x=Red_levA))+
         labs(colour = get_legend_title(ggpredict),
              x = get_x_title(ggpredict),
              y = get_y_title(ggpredict),
@@ -569,100 +527,6 @@ print(ggplot(ggpredict,aes(x = x, y = predicted))+
         scale_x_continuous(labels = scales::comma)+
         labs(x="Avg.Bar.M [GL]", y=paste0("Avg.Col.M")))
 ```
-
-
-# Trying GLMs for water level modelling (not good)
-```{r cumbung - four mile vs booligal}
-# only include months with >95% data
-cflow.mC <- cflow.m %>% filter(nB >= 29, nF >= 29)
-
-
-# generalised linear model
-M1 <- glm(l.Four_levM ~ poly(l.Bool_levM,2), data=cflow.mC, na.action = na.omit)
-summary(M1)
-cor.test(cflow.m$l.Bool_levM, cflow.m$l.Four_lev)
-# 
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-# without log transformation, looks terrible
-# looks ok with max data and log-log transformation
-par(mfrow = c(1, 1))
-ggplot(cflow.mC, aes(l.Bool_levM, l.Four_levM), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# linear relationship assumption is not good
-
-# predict
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Bool_levM[all]"))
-
-plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal level",y="Four mile weir level",title="")
-
-```
-
-```{r hattah}
-# only include months with >95% data
-hflow.mC <- hflow.m %>% filter(nB >= 29, nC >= 29)
-
-
-# generalised linear model
-M1 <- glm(l.Col_levM ~ poly(l.Bar_levM,2), data=hflow.mC, na.action = na.omit)
-cor.test(hflow.mC$l.Col_levM, hflow.mC$l.Bar_levM)
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-par(mfrow = c(1, 1))
-ggplot(hflow.mC, aes(l.Col_levM, l.Bar_levM), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# normality is a bit off but hopefully ok
-# linearity not great
-
-
-# predict
-hflow.mC$predict.l <- predict(M1, hflow.mC)
-# create a variable that is predicted log redbank dis
-hflow.mC$predict <- exp(hflow.mC$predict.l) - 1
-# back transform 
-plot(hflow.mC$Col_levA ~ hflow.mC$predict)
-# visualise relationship between original and predicted colignan level
-
-
-# plot
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Bar_levM[all]"))
-
-plot(ggemmeans.lev,  colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Barham Discharge (log)",y="Colignan Discharge (log)",title="")
-
-# export
-#write.csv(hflow, "output/hattah_pred_lev.csv")
-```
-
-```{r lowbidgee}
-# only include months with >95% data
-lflow.mC <- lflow.m %>% filter(nH >= 29, nR >= 29)
-
-# generalised linear model
-M1 <- glm(l.Red_levM ~ poly(l.Hay_levM,2), data=lflow.mC, na.action = na.omit)
-summary(M1)
-cor.test(lflow.m$l.Hay_lev, lflow.m$l.Red_lev)
-# 
-
-# check assumptions
-par(mfrow = c(2, 2))
-plot(M1) # top left test for equal variances, top right normality 
-# without log transformation, looks terrible
-# normality looks ok but equal variance looks weird with log-log transformation
-par(mfrow = c(1, 1))
-ggplot(lflow.m, aes(l.Hay_levM, l.Red_levM), na.rm = TRUE) +
-  geom_point() # test for linear relationship
-# linear relationship assumption is fine
-
-# predict
-ggemmeans.lev <- ggemmeans(M1, terms = c("l.Hay_levM[all]"))
-
-plot(ggemmeans.lev, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Hay level",y="Redbank level",title="")
-```
-
 
 
 
