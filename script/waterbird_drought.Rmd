@@ -22,6 +22,18 @@ wbd <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessmen
 ```
 
 
+```{r  plot}
+ggplot(wbd, aes(Drought,Percentage_complex)) +
+  geom_boxplot() +
+  geom_jitter() +
+  labs(x = "", y = "% Waterbirds at  Great Cumbung Swamp") +
+  scale_x_discrete(labels = c('Dry','Other')) +
+  theme_bw() + 
+  theme(text = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),)
+```
 
 
 
@@ -31,25 +43,13 @@ Make sure to test assumptions!
 
 
 ```{r assumptions}
-ggplot(wbd, aes(Drought,Percentage_complex)) +
-  geom_boxplot() +
-  geom_jitter() +
-  labs(x = "", y = "% Waterbirds at  Great Cumbung Swamp") +
-  scale_x_discrete(labels = c('Drought','Non-drought')) +
-  theme_bw() + 
-  theme(text = element_text(size = 16),
-        axis.text = element_text(size = 14),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),)
-
 ggqqplot(wbd, "Percentage_complex")
-ggqqplot(wbd, "Percentage_MDB")
+
+par(mfrow = c(2, 2))
+plot(wbd)
 
 ggplot(wbd, aes(Percentage_complex)) +
   geom_histogram(binwidth = 3)
-
-ggplot(wbd, aes(Percentage_MDB)) +
-  geom_histogram(binwidth = 0.5)
 ```
 
 ```{r t test}

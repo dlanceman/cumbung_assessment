@@ -26,7 +26,7 @@ ANAE_5_long <- pivot_longer(ANAE_prop_5, c("proportion","area.ha"),"Names")
 ```{r Stacked bar plots}
 # reorder ANAE_TYPE for ANAE_5_long
 ANAE_5_long$ANAE_TYPE <- factor(ANAE_5_long$ANAE_TYPE,levels = c( 
-  "Other",
+  "Other wetland types",
   "Lp1.1: Permanent lake",                             
   "Lt1.1: Temporary lake",
   "Rp1.4: Permanent lowland stream",
@@ -46,8 +46,11 @@ ANAE_5_long$ANAE_TYPE <- factor(ANAE_5_long$ANAE_TYPE,levels = c(
   "Pt1.2.1: Black box riparian zone or floodplain"
   ))
 
+# reorder wetland complexes - opposite of what you'd expect as coordinates are flipped
+ANAE_5_long$Wetland <- factor(ANAE_5_long$Wetland,levels = c("Yantabulla", "Paroo","Murray Riverland wetlands", "Macquarie marshes", "Lowbidgee","Hattah Lakes","Gwydir","Booligal","Cumbung"))
+
 facet_names <- setNames(c( "Percentage area", "Area (ha)"), unique(ANAE_5_long$Names))
-legend_order <- c("Lp1.1: Permanent lake", "Lt1.1: Temporary lake","Pp2.1.2: Permanent tall emergent marsh","Pt1.1.1: River red gum riparian zone or floodplain", "Pt1.2.1: Black box riparian zone or floodplain","Pt1.3.1: Coolibah riparian zone or floodplain","Pt1.4.1: River cooba riparian zone or floodplain","Pt1.7.1: Lignum riparian zone or floodplain","Pt1.6.1: Riparian or floodplain woodland","Pt1.6.2: Temporary woodland swamp","Pt1.8.1: Riparian or floodplain shrubland", "Pt1.8.2: Temporary shrub swamp","Pt2.2.2: Temporary sedge/grass/forb marsh","Pt2.3.2: Freshwater meadow", "Rp1.4: Permanent lowland stream", "Other")
+legend_order <- c("Lp1.1: Permanent lake", "Lt1.1: Temporary lake","Pp2.1.2: Permanent tall emergent marsh","Pt1.1.1: River red gum riparian zone or floodplain", "Pt1.2.1: Black box riparian zone or floodplain","Pt1.3.1: Coolibah riparian zone or floodplain","Pt1.4.1: River cooba riparian zone or floodplain","Pt1.7.1: Lignum riparian zone or floodplain","Pt1.6.1: Riparian or floodplain woodland","Pt1.6.2: Temporary woodland swamp","Pt1.8.1: Riparian or floodplain shrubland", "Pt1.8.2: Temporary shrub swamp","Pt2.2.2: Temporary sedge/grass/forb marsh","Pt2.3.2: Freshwater meadow", "Rp1.4: Permanent lowland stream", "Other wetland types")
 colour_order <- c("#E31A1C", # red
 "green4","skyblue2", "brown","yellow4","darkturquoise", "khaki2",
 "#FB9A99", # lt pink
@@ -64,7 +67,7 @@ ggplot(ANAE_5_long, aes(fill=ANAE_TYPE, y=value, x=Wetland)) +
     scale_fill_discrete(limits = legend_order, type = colour_order) +
   labs(y = "", x = "", fill = "") +
   facet_wrap(~Names, scales = "free_x",  labeller = as_labeller(facet_names), strip.position = "bottom") +
-  scale_x_discrete(labels = c('B','C','G','H','L','M','R','P','Y')) + 
+  scale_x_discrete(labels = c('Y','P','R','M','L','H','G','B','C')) + 
   theme(text = element_text(size = 14), 
         axis.text = element_text(size = 14),
         legend.text=element_text(size=14),
@@ -77,5 +80,7 @@ ggplot(ANAE_5_long, aes(fill=ANAE_TYPE, y=value, x=Wetland)) +
         legend.key=element_blank())   +
   guides(fill=guide_legend(ncol=2, keywidth = 3))
  
+
+# export at 980 x 667
 ```
 

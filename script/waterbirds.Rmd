@@ -10,6 +10,10 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
+
+
+# remove scientific notation
+options(scipen = 100)
 ```
 
 ```{r setup}
@@ -49,7 +53,7 @@ l <- read_excel("raw/waterbird_trends.xlsx", "lowbidgee") %>%
 ```
 
 
-# Generalised linear models
+# Generalised linear models - discharge vs abundance
 
 Assumptions:
 - Independance of each data points
@@ -68,8 +72,10 @@ birdplot <- function(predict_data, title){
         axis.text = element_text(size = 28),
         panel.grid.major = element_blank(), # remove grid lines
         panel.grid.minor = element_blank(),
+        plot.margin = margin(10,20,10,10), # extra space on RHS
         plot.title = element_text(hjust = 0.5)) # centre title
 }
+
 ```
 
 
@@ -91,8 +97,24 @@ plot(c$ln.dis,c$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-cplot <- birdplot(ggemmeans.Inun, "Great Cumbung Swamp*")
+# plot
+cplot <- birdplot(ggemmeans.Inun, "Great Cumbung Swamp*")  +
+  scale_y_continuous(breaks = pretty(c$ln.bird), labels = signif(exp(pretty(c$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(c$ln.dis,n = 3), 
+                     labels = signif(exp(pretty(c$ln.dis, n = 3)),1)) +
+  theme(title = element_text(size = 28),
+        plot.margin = margin(10,30,10,10)) # extra space on RHS
 cplot
+
+# presentation plot
+cplot4 <- birdplot(ggemmeans.Inun, "")  +
+  labs(x = "Flows (ML/day)", y = "Waterbird abundance") +
+  scale_y_continuous(breaks = pretty(c$ln.bird), labels = signif(exp(pretty(c$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(c$ln.dis,n = 3), 
+                     labels = signif(exp(pretty(c$ln.dis, n = 3)),1)) +
+  theme(title = element_text(size = 28),
+        plot.margin = margin(10,30,10,10)) # extra space on RHS
+cplot4
 ```
 
 ```{r booligal}
@@ -112,7 +134,11 @@ plot(b$ln.dis, b$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-bplot <- birdplot(ggemmeans.Inun, "Booligal Wetlands*")
+bplot <- birdplot(ggemmeans.Inun, "Booligal Wetlands*")  +
+  scale_y_continuous(breaks = pretty(b$ln.bird), 
+                     labels = signif(exp(pretty(b$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(b$ln.dis, n = 3), 
+                     labels = signif(exp(pretty(b$ln.dis, n = 3)),1))
 bplot
 ```
 
@@ -133,7 +159,11 @@ plot(g$ln.dis, g$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-gplot <- birdplot(ggemmeans.Inun, "Gwydir Wetlands")
+gplot <- birdplot(ggemmeans.Inun, "Gwydir Wetlands")+
+  scale_y_continuous(breaks = pretty(g$ln.bird, n = 4), 
+                     labels = signif(exp(pretty(g$ln.bird, n = 4)),1)) +
+  scale_x_continuous(breaks = pretty(g$ln.dis, n = 4), 
+                     labels = signif(exp(pretty(g$ln.dis, n = 4)),1))
 gplot
 ```
 
@@ -154,7 +184,11 @@ plot(h$ln.dis,h$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-hplot <- birdplot(ggemmeans.Inun, "Hattah Lakes")
+hplot <- birdplot(ggemmeans.Inun, "Hattah Lakes") +
+  scale_y_continuous(breaks = pretty(h$ln.bird), 
+                     labels = signif(exp(pretty(h$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(h$ln.dis, n = 3), 
+                     labels = signif(exp(pretty(h$ln.dis, n = 3)),1))
 hplot
 ```
 
@@ -175,7 +209,11 @@ plot(l$ln.dis,l$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-lplot <- birdplot(ggemmeans.Inun, "Lowbidgee Wetlands*")
+lplot <- birdplot(ggemmeans.Inun, "Lowbidgee Wetlands*") +
+  scale_y_continuous(breaks = pretty(l$ln.bird, n = 4),
+                     labels = signif(exp(pretty(l$ln.bird, n = 4)),1)) +
+  scale_x_continuous(breaks = pretty(l$ln.dis), 
+                     labels = signif(exp(pretty(l$ln.dis)),1))
 lplot
 ```
 
@@ -196,7 +234,12 @@ plot(m$ln.dis,m$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-mplot <- birdplot(ggemmeans.Inun, "Macquarie Marshes*")
+mplot <- birdplot(ggemmeans.Inun, "Macquarie Marshes*") +
+  scale_y_continuous(breaks = pretty(m$ln.bird), 
+                     labels = signif(exp(pretty(m$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(m$ln.dis), 
+                     labels = signif(exp(pretty(m$ln.dis)),1)) +
+  theme(title = element_text(size = 30)) 
 mplot
 ```
 
@@ -217,7 +260,12 @@ plot(p$ln.dis, p$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-pplot <- birdplot(ggemmeans.Inun, "Paroo Overflow Swamps")
+pplot <- birdplot(ggemmeans.Inun, "Paroo Overflow Swamps") +
+  scale_y_continuous(breaks = pretty(p$ln.bird), 
+                     labels = signif(exp(pretty(p$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(p$ln.dis, n = 3),
+                     labels = signif(exp(pretty(p$ln.dis, n = 3)),1))  +
+  theme(title = element_text(size = 28)) 
 pplot
 ```
 
@@ -238,8 +286,11 @@ plot(r$ln.dis,r$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-rplot <- birdplot(ggemmeans.Inun, "Murray Riverland Wetlands") +
-  theme(title = element_text(size = 28)) # decrease title size for Murray Riverland
+rplot <- birdplot(ggemmeans.Inun, "Murray Riverlands") +
+  scale_y_continuous(breaks = pretty(r$ln.bird), 
+                     labels = signif(exp(pretty(r$ln.bird)),1)) +
+  scale_x_continuous(breaks = pretty(r$ln.dis, n = 3), 
+                     labels = signif(exp(pretty(r$ln.dis, n = 3)),1))
 rplot
 ```
 
@@ -260,22 +311,309 @@ plot(y$ln.dis, y$ln.bird) # linear relationship
 # predict
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
-yplot <- birdplot(ggemmeans.Inun, "Yantabulla Swamps")
+yplot <- birdplot(ggemmeans.Inun, "Yantabulla Swamp") +
+  scale_y_continuous(breaks = pretty(y$ln.bird, n = 3), 
+                     labels = signif(exp(pretty(y$ln.bird, n = 3)),1)) +
+  scale_x_continuous(breaks = pretty(y$ln.dis, n = 3), 
+                     labels = signif(exp(pretty(y$ln.dis, n = 3)),1)) +
+  theme(plot.margin = margin(10,30,10,10))
 yplot
 ```
 
+# Generalised linear models - time vs abundance
 
 
-```{r put plots together}
-# export at 2100 x 2700 
 
-bird <- ggarrange(cplot, bplot, lplot, mplot, gplot, yplot, pplot, rplot, hplot,
+```{r cumbung}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=c)
+summary(M1)
+cor.test(c$ln.bird, c$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(c$Year,c$ln.bird) # linear relationship
+# assumptions ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+# plot
+cplot2 <- birdplot(ggemmeans.Inun, "Great Cumbung Swamp") +
+  scale_x_continuous(breaks = c(2010,2015,2020)) +
+  theme(title = element_text(size = 28))  +
+  scale_y_continuous(breaks = pretty(c$ln.bird), 
+                     labels = signif(exp(pretty(c$ln.bird)),1))
+cplot2
+
+# plot for presentation
+cplot3 <- birdplot(ggemmeans.Inun, "") +
+  labs(x= "Year", y = "Waterbird abundance") +
+  scale_x_continuous(breaks = c(2010,2015,2020)) +
+  theme(title = element_text(size = 28))  +
+  scale_y_continuous(breaks = pretty(c$ln.bird), 
+                     labels = signif(exp(pretty(c$ln.bird)),1))
+cplot3
+
+c$predict.Time <- predict(M1, c)
+
+# calculate differences over time
+100-(c$predict.Time[length(c$predict.Time)]/c$predict.Time[1]*100)
+```
+
+```{r booligal}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=b)
+summary(M1)
+cor.test(b$ln.bird, b$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(b$Year, b$ln.bird) # linear relationship
+# assumptions ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+bplot2 <- birdplot(ggemmeans.Inun, "Booligal Wetlands")  +
+  scale_x_continuous(breaks = c(2010,2015,2020))  +
+  scale_y_continuous(breaks = pretty(b$ln.bird, n = 3), 
+                     labels = signif(exp(pretty(b$ln.bird, n = 3)),1))
+bplot2
+
+b$predict.Time <- predict(M1, b)
+
+# calculate differences over time
+100-(b$predict.Time[length(b$predict.Time)]/b$predict.Time[1]*100)
+```
+
+```{r gwydir}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=g)
+summary(M1)
+cor.test(g$ln.bird, g$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(g$Year, g$ln.bird) # linear relationship
+# assumptions seem ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+gplot2 <- birdplot(ggemmeans.Inun, "Gwydir Wetlands")  +
+  scale_x_continuous(breaks = c(2010,2015,2020)) +
+  scale_y_continuous(breaks = pretty(g$ln.bird, n = 3), 
+                     labels = signif(exp(pretty(g$ln.bird, n = 3)),1))
+gplot2
+
+g$predict.Time <- predict(M1, g)
+
+# calculate differences over time
+100-(g$predict.Time[length(g$predict.Time)]/g$predict.Time[1]*100)
+```
+
+```{r hattah}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=h)
+summary(M1)
+cor.test(h$ln.bird, h$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(h$Year,h$ln.bird) # linear relationship
+# Assumtions seem ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+hplot2 <- birdplot(ggemmeans.Inun, "Hattah Lakes")  +
+  scale_x_continuous(breaks = c(2007,2011,2015,2020)) +
+  scale_y_continuous(breaks = pretty(h$ln.bird), 
+                     labels = signif(exp(pretty(h$ln.bird)),1))
+hplot2
+
+h$predict.Time <- predict(M1, h)
+
+# calculate differences over time
+100-(h$predict.Time[length(h$predict.Time)]/h$predict.Time[1]*100)
+```
+
+```{r lowbidgee}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=l)
+summary(M1)
+cor.test(l$ln.bird, l$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(l$Year,l$ln.bird) # linear relationship
+# assumptions seem ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+lplot2 <- birdplot(ggemmeans.Inun, "Lowbidgee Wetlands")  +
+  scale_x_continuous(breaks = c(2010,2015,2020))  +
+  scale_y_continuous(breaks = pretty(l$ln.bird,n = 3), 
+                     labels = signif(exp(pretty(l$ln.bird, n = 3)),1))
+lplot2
+
+l$predict.Time <- predict(M1, l)
+
+# calculate differences over time
+100-(l$predict.Time[length(l$predict.Time)]/l$predict.Time[1]*100)
+```
+
+```{r macquarie}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=m)
+summary(M1)
+cor.test(m$ln.bird, m$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(m$Year,m$ln.bird) # linear relationship
+# assumptions OK
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+mplot2 <- birdplot(ggemmeans.Inun, "Macquarie Marshes")  +
+  scale_x_continuous(breaks = c(2010,2015,2020))  +
+  scale_y_continuous(breaks = pretty(m$ln.bird, n = 3), 
+                     labels = signif(exp(pretty(m$ln.bird, n = 3)),1))
+mplot2
+
+m$predict.Time <- predict(M1, m)
+
+# calculate differences over time
+100-(m$predict.Time[length(m$predict.Time)]/m$predict.Time[1]*100)
+```
+
+```{r paroo}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=p)
+summary(M1)
+cor.test(p$ln.bird, p$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(p$Year, p$ln.bird) # linear relationship
+# assumptions OK
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+pplot2 <- birdplot(ggemmeans.Inun, "Paroo Overflow Swamps")  +
+  scale_x_continuous(breaks = c(2010,2015,2020)) +
+  theme(title = element_text(size = 28))  +
+  scale_y_continuous(breaks = pretty(p$ln.bird), 
+                     labels = signif(exp(pretty(p$ln.bird)),1))
+pplot2
+
+p$predict.Time <- predict(M1, p)
+
+# calculate differences over time
+100-(p$predict.Time[length(p$predict.Time)]/p$predict.Time[1]*100)
+```
+
+```{r riverland}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=r)
+summary(M1)
+cor.test(r$ln.bird, r$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(r$Year,r$ln.bird) # linear relationship
+# assumptions ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+rplot2 <- birdplot(ggemmeans.Inun, "Murray Riverlands") +
+  scale_x_continuous(breaks = c(2008,2012,2016,2020))  +
+  scale_y_continuous(breaks = pretty(r$ln.bird), 
+                     labels = signif(exp(pretty(r$ln.bird)),1))
+rplot2
+
+r$predict.Time <- predict(M1, r)
+
+# calculate differences over time
+100-(r$predict.Time[length(r$predict.Time)]/r$predict.Time[1]*100)
+```
+
+```{r yantabulla}
+# generalised linear model
+M1 <- glm(ln.bird ~ Year, data=y)
+summary(M1)
+cor.test(y$ln.bird, y$Year)
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(y$Year, y$ln.bird) # linear relationship
+# assumptions ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("Year[all]"))
+
+yplot2 <- birdplot(ggemmeans.Inun, "Yantabulla Swamp")  +
+  scale_x_continuous(breaks = c(2010,2015,2020))  +
+  scale_y_continuous(breaks = pretty(y$ln.bird, n = 3), 
+                     labels = signif(exp(pretty(y$ln.bird, n = 3)),1))
+yplot2
+
+y$predict.Time <- predict(M1, y)
+
+# calculate differences over time
+100-(y$predict.Time[length(y$predict.Time)]/y$predict.Time[1]*100)
+```
+
+
+# Plotting
+
+```{r put discharge plots together}
+# export at 2100 x 2800 
+
+bird <- ggarrange(cplot, bplot, gplot, hplot, lplot, mplot, rplot, pplot,yplot,  
           #labels = c("A*", "B*", "C*", "D*", "E", "F", "G", "H", "I"),
           ncol = 3, nrow = 3,
           #hjust = -0.5, # moves plot labels right
-          font.label = list(size = 40))
+          font.label = list(size = 40), align = "hv")
 
-annotate_figure(bird, bottom = text_grob("Discharge (log-transformed)",  size = 60, just = "bottom"), left = text_grob("Waterbird abundance (log-transformed)", size = 60, rot = 90)) # rotate 90 degrees
+annotate_figure(bird, bottom = text_grob("Average daily flow volume (ML)",  size = 60, just = "bottom"), left = text_grob("Waterbird abundance", size = 60, rot = 90)) # rotate 90 degrees
+# just = "bottom" helps text not be cut off
+```
+
+
+```{r put time plots together}
+# export at 2100 x 2900 
+
+bird <- ggarrange(cplot2, bplot2, gplot2, hplot2, lplot2, mplot2, rplot2, pplot2, yplot2,
+          ncol = 3, nrow = 3,
+          #hjust = -0.5, # moves plot labels right
+          font.label = list(size = 40), align = "hv")
+
+annotate_figure(bird, bottom = text_grob("Year",  size = 60, just = "bottom"), left = text_grob("Waterbird abundance", size = 60, rot = 90)) # rotate 90 degrees
 # just = "bottom" helps text not be cut off
 ```
 
