@@ -7,10 +7,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ```{r set up}
 library(tidyverse)
 library(readxl)
@@ -18,21 +14,44 @@ library(viridis)
 library(rstatix)
 library(ggpubr)
 
-wbd <- read_excel("C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment/raw/waterbird_derived_complex.xlsx", "percentages")
+# load MDB data
+waterbird_MDB <- read.csv("raw/MDB2008-2024WaterbirdData20251003.csv") 
+
+# summarise MDB by year, count 1 only
+waterbird_MDB_Totals <- read.csv("raw/MDB2008-2024WaterbirdData20251003.csv") %>% subset(CountType != 2) %>% 
+  group_by(SurvYear) %>% 
+  summarise(Count = sum(Count)) 
+
+# load cumbung data by year
+waterbird_Cumbung_Totals <- read.csv("raw/WaterbirdSubset/CumbungWaterbirdTotalCount1.csv") %>% 
+  select(SurvYear, Count) %>% 
+  rename(CountCumbung = Count)
+
+# merge datasets
+waterbirdCumbungMDB <- left_join(waterbird_Cumbung_Totals, waterbird_MDB_Totals, by = "SurvYear")
+
+# calculate the percentage of total waterbirds in the cumbung each year
+waterbirdCumbungMDB <- waterbirdCumbungMDB %>% mutate(percentage_cumbung = CountCumbung/Count*100)
+
+# append drought dataset - based on years with below average rainfall in the MDB https://www.bom.gov.au/climate/history/rainfall/
+waterbirdCumbungMDB <- waterbirdCumbungMDB %>% mutate(drought = c("n", "n", "n", "y", "n", "n", "n", "y", "y", "y", "n", "n", "n", "y", "n"))
 ```
 
 
 ```{r  plot}
-ggplot(wbd, aes(Drought,Percentage_complex)) +
+png("output2/birddrought.png", width = 1200, height = 700)
+ggplot(waterbirdCumbungMDB, aes(drought,percentage_cumbung)) +
   geom_boxplot() +
-  geom_jitter() +
+  geom_jitter(size = 4) +
   labs(x = "", y = "% Waterbirds at  Great Cumbung Swamp") +
   scale_x_discrete(labels = c('Dry','Other')) +
   theme_bw() + 
-  theme(text = element_text(size = 16),
-        axis.text = element_text(size = 14),
+  theme(text = element_text(size = 32),
+        axis.text = element_text(size = 28),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),)
+dev.off()
+
 ```
 
 
@@ -43,16 +62,16 @@ Make sure to test assumptions!
 
 
 ```{r assumptions}
-ggqqplot(wbd, "Percentage_complex")
+ggqqplot(waterbirdCumbungMDB, "percentage_cumbung")
 
 par(mfrow = c(2, 2))
-plot(wbd)
+plot(waterbirdCumbungMDB)
 
-ggplot(wbd, aes(Percentage_complex)) +
-  geom_histogram(binwidth = 3)
+ggplot(waterbirdCumbungMDB, aes(percentage_cumbung)) +
+  geom_histogram(binwidth = 1)
 ```
 
 ```{r t test}
-wbd %>% t_test(Percentage_complex~Drought)
+waterbirdCumbungMDB %>% t_test(percentage_cumbung~drought)
 ```
 

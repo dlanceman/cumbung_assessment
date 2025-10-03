@@ -1,0 +1,85 @@
+---
+title: "Cumbung Waterbird Data Preparation"
+author: "Dana Lanceman"
+format: html
+editor: visual
+---
+
+# Cumbung Waterbird Data Preparation
+
+This document is for preparing the most recently updated Aerial Waterbird Survey waterbird data in the Great Cumbung Swamp for data analysis.
+
+## 1. Set up
+
+Load packages.
+
+```{r Packages}
+library(tidyverse)
+library(here)
+library(readxl)
+```
+
+Load data file.
+
+```{r Data}
+raw <- read_xlsx(here("raw/Cumbung_waterbirds_2008-2024_20251003.xlsx"))
+```
+
+## 2. Data manipulation
+
+Subset data for only 2010-2024 (2008 data were from a different program so aren't necessarily comparable).
+
+Also remove the columns we don't need.
+
+Separate into count 1 (ReplicateC = NA or 1) and count 2 (ReplicateC = 2) as we can't use these data together as they're non-independent.
+
+```{r Subset_select}
+raw2 <- raw %>% subset(SurvYear %in% c(2010:2024)) %>% 
+  select(SurvYear, Name, MDBWetland, Subwetland, CommonName, Scientific, ReplicateC, Count, Nest, Broods, BreedingIn)
+
+count1 <- raw2 %>% subset(ReplicateC != 2)
+
+count2 <- raw2 %>% subset(ReplicateC == 2)
+```
+
+### Annual totals
+
+Calculate total annual waterbird counts. Calculate for both count 1 and count 2, but count 2 data are likely incomplete so we can't use them.
+
+```{r Annual_totals}
+Annual_total1 <- count1 %>% group_by(SurvYear) %>% 
+  summarise(Count = sum(Count), Nest = sum(Nest), Broods = sum(Broods), Breeding = sum(BreedingIn))
+
+Annual_total2 <- count2 %>% group_by(SurvYear) %>% 
+  summarise(Count = sum(Count), Nest = sum(Nest), Broods = sum(Broods), Breeding = sum(BreedingIn))
+```
+
+Count 2 data are incomplete, so from now on only use Count 1 data.
+
+### Species totals
+
+Also sum the total count of each species for each year.
+
+Also sum the mean and max counts for each species over all years.
+
+```{r Species_totals}
+Species_total1 <- count1 %>% group_by(SurvYear, Scientific, CommonName) %>% 
+  summarise(Count = sum(Count), Nest = sum(Nest), Broods = sum(Broods), Breeding = sum(BreedingIn))
+
+SpeciesStats <- Species_total1 %>% group_by(Scientific, CommonName) %>% 
+  summarise(meanCount = mean(Count), maxCount = max(Count))
+```
+
+### Exports
+
+Export the above dataframes so I can import them for other analyses.
+
+```{r Export}
+write_csv(count1, file = here("raw/WaterbirdSubset/CumbungWaterbirdCount1.csv"))
+
+write_csv(Annual_total1, file = here("raw/WaterbirdSubset/CumbungWaterbirdTotalCount1.csv"))
+
+write_csv(Species_total1, file = here("raw/WaterbirdSubset/CumbungWaterbirdSpeciesCount1.csv"))
+
+write_csv(SpeciesStats, file = here("raw/WaterbirdSubset/CumbungWaterbirdSpeciesStats.csv"))
+```

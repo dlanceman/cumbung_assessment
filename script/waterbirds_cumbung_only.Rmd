@@ -7,30 +7,30 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = 'C:/Users/danal/OneDrive - UNSW/Desktop/Honours_UNSW/Assessment/cumbung_assessment')
-
-
-# remove scientific notation
-options(scipen = 100)
-```
-
 ```{r get packages}
+#library(here)
 library(tidyverse)
 library(readxl)
 library(viridis)
-library(ggeffects)
 library(ggpubr)
 library(lubridate)
 library(padr)
+library(ggeffects)
+library(scales)
 ```
 
+Load waterbird datasets we created in our other quarto document (WaterbirdDataPrep). Also import a dataset derived from Wetlands International data (https://wpp.wetlands.org/explore) that includes 1% population thresholds for each of our waterbirds. I added the species data onto this dataset in excel (because R was not appending properly). Also import flow and inundation data.
 
 ```{r get data}
-waterbird <- read_excel("raw/waterbird_trends_cumbung_only.xlsx", "cumbung") %>% 
-  mutate(ln.bird = log(Waterbirds)) %>% 
-  rename(waterYear = Year) # changing this to waterYear so matches flow column name
+waterbird <- read.csv("raw/WaterbirdSubset/CumbungWaterbirdTotalCount1.csv") %>% 
+  mutate(ln.bird = log(Count)) %>% 
+  rename(waterYear = SurvYear) # changing this to waterYear so matches flow column name
+
+waterbirdSp <- read.csv("raw/WaterbirdSubset/CumbungWaterbirdSpeciesCount1.csv")
+
+waterbirdSpStats <- read.csv("raw/WaterbirdSubset/CumbungWaterbirdSpeciesStats.csv")
+
+wbirdpop <- read_xlsx("raw/Cumbung_Birds_Pop_Status.xlsx")
 
 flow <- read_csv("raw/fourmile_flows_412194_daily.csv") %>% 
   mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>% 
@@ -45,6 +45,9 @@ flow <- flow %>% mutate(year = year(Date),
                         month = month(Date),
                         waterYear = case_when(month %in% c(7:12) ~ year,
                                               month %in% c(1:6) ~ year - 1))
+
+inun <- read.csv("raw/cumbung_inundation.csv") %>% 
+  rename(waterYear = Date)
 ```
 
 
@@ -65,6 +68,8 @@ wb_flow <- right_join(waterbird, flow_WY) %>%
            mutate(ln.dis = log(discharge_WY)) %>% 
            select(!n)
 
+wb_inun <- right_join(waterbird, inun) %>% 
+           mutate(ln.inun = log(Water_area_km2))
 ```
 
 
@@ -79,10 +84,11 @@ Assumptions:
 
 ```{r function for plotting}
 birdplot <- function(predict_data, title){
-  plot(predict_data, facet = FALSE, colors = "hero", ci = T, dot.alpha = 1, dot.size = 8, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + 
-  labs(x="Flows (ML/year)",y="Waterbirds",title=title) +
+  plot(predict_data, facet = FALSE) + 
+  labs(x="Flow (ML/year)",y="Waterbirds",title=title) +
   theme_bw() +
-  geom_line(size = 1.2) +
+  geom_line(linewidth = 1.2) +
+  geom_point(data = ggemmeans.Inun, aes(x = x, y = attr(ggemmeans.Inun, "rawdata")$response), size = 6) +
   theme(axis.title = element_text(size = 64), # change font size
         axis.text = element_text(size = 48),
         axis.text.x = element_text(vjust = -0.5),
@@ -98,7 +104,7 @@ birdplot <- function(predict_data, title){
 
 
 
-```{r cumbung}
+```{r discharge}
 # generalised linear model
 M1 <- glm(ln.bird ~ ln.dis, data=wb_flow)
 summary(M1)
@@ -116,11 +122,52 @@ plot(wb_flow$ln.dis,wb_flow$ln.bird) # roughly linear relationship
 ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.dis[all]"))
 
 # plot
+options(scipen = 999) # turn off scientific notation
 cplot <- birdplot(ggemmeans.Inun, "")  +
-  scale_y_continuous(breaks = pretty(wb_flow$ln.bird), labels = signif(exp(pretty(wb_flow$ln.bird)),1)) +
+  scale_y_continuous(breaks = pretty(wb_flow$ln.bird, n = 4), labels = signif(exp(pretty(wb_flow$ln.bird, n = 4)),1)) +
   scale_x_continuous(breaks = pretty(wb_flow$ln.dis,n = 3), 
-                     labels = signif(exp(pretty(wb_flow$ln.dis, n = 3)),1)) 
+                     labels = signif(exp(pretty(wb_flow$ln.dis, n = 3)),1))  
 cplot
+
+# save plot
+png("output2/birdflow.png", height = 900, width = 1200)
+cplot
+dev.off()
+```
+
+
+
+
+```{r inundation}
+# generalised linear model
+M1 <- glm(ln.bird ~ ln.inun, data=wb_inun)
+summary(M1)
+cor.test(wb_inun$ln.bird, wb_inun$ln.inun)
+# p = 0.08
+
+# check assumptions
+par(mfrow = c(2, 2))
+plot(M1) # top left equal variances, top right normality 
+par(mfrow = c(1, 1))
+plot(wb_inun$ln.inun,wb_inun$ln.bird) # not a non linear relationship
+# assumptions ok
+
+# predict
+ggemmeans.Inun <- ggemmeans(M1, terms = c("ln.inun[all]"))
+
+# plot
+options(scipen = 999) # turn off scientific notation
+cplot4 <- birdplot(ggemmeans.Inun, "")  +
+  scale_y_continuous(breaks = pretty(wb_inun$ln.bird, n = 4), labels = signif(exp(pretty(wb_inun$ln.bird, n = 4)),1)) +
+  scale_x_continuous(breaks = pretty(wb_inun$ln.inun,n = 3), 
+                     labels = signif(exp(pretty(wb_inun$ln.inun, n = 3)),1))  + 
+  labs(x="Inundation (km2)",y="Waterbirds")
+cplot4
+
+# save plot
+png("output2/birdinun.png", height = 900, width = 1200)
+cplot4
+dev.off()
 ```
 
 
@@ -137,7 +184,7 @@ cor.test(wb_flow$ln.bird, wb_flow$waterYear)
 par(mfrow = c(2, 2))
 plot(M1) # top left equal variances, top right normality 
 par(mfrow = c(1, 1))
-plot(wb_flow$Year,wb_flow$ln.bird) # linear relationship
+plot(wb_flow$waterYear,wb_flow$ln.bird) # linear relationship
 # assumptions ok
 
 # predict
@@ -151,6 +198,11 @@ cplot2 <- birdplot(ggemmeans.Inun, "") +
                      labels = signif(exp(pretty(wb_flow$ln.bird)),1))
 cplot2
 
+# save plot
+png("output2/birdtime.png", height = 900, width = 1200) 
+cplot2
+dev.off()
+
 # plot for presentation
 cplot3 <- birdplot(ggemmeans.Inun, "") +
   labs(x= "Year", y = "Waterbirds") +
@@ -163,5 +215,44 @@ wb_flow$predict.Time <- predict(M1, wb_flow)
 
 # calculate differences over time
 100-(wb_flow$predict.Time[length(wb_flow$predict.Time)]/wb_flow$predict.Time[1]*100)
+```
+
+
+# Ramsar values
+
+```{r Waterbird_summary_stats}
+# average birds per year
+mean(waterbird$Count)
+max(waterbird$Count)
+```
+
+
+For significant proportions below, note 1990 data that were collected separately (by Maher) were not included in these analysis and were added separately to results tables created.
+
+```{r Significant proportions}
+# subset waterbird population data and waterbird species data for only essential cols
+# there is an issue with blank spaces displaying separately so make these all the same, otherwise the datasets won't join properly
+wbirdpop2 <- as.data.frame(wbirdpop) %>% select(Scientific, CommonName, `1% Threshold`) %>% 
+  mutate(Scientific = str_replace_all(Scientific, "[:space:]", " "),
+         CommonName = str_replace_all(CommonName, "[:space:]", " "))
+
+waterbirdSp2 <- as.data.frame(waterbirdSp) %>% select(Scientific, CommonName, SurvYear, Count) %>% 
+  mutate(Scientific = str_replace_all(Scientific, "[:space:]", " "),
+         CommonName = str_replace_all(CommonName, "[:space:]", " "))
+
+# merge datasets
+wbirdSpCountPropSig <- right_join(wbirdpop2, waterbirdSp2, by = c("Scientific", "CommonName"))
+
+# create a column for proportion of each year's count of the significant threshold; if above 1, there is a significant proportion for that species that year.
+wbirdSpCountPropSig <- wbirdSpCountPropSig %>% mutate(propThreshold = Count/`1% Threshold`)
+
+# subset only for Significant Proportions (>1) - this dataframe lists all instances that species exceeded thresholds
+wbirdSpSigPropOnly <- wbirdSpCountPropSig %>% subset(propThreshold >= 1)
+
+# export as csv
+write.csv(wbirdSpSigPropOnly, file = "output2/csv/SigProportions.csv")
+
+# number of unique species that exceeded proportions
+unique(wbirdSpSigPropOnly$CommonName)
 ```
 
