@@ -27,6 +27,7 @@ library(here)
 
 ```{r get and prepare daily flow/flood data}
 
+
 four <- read_csv(here("raw/fourmile_flows_412194_daily.csv")) %>% 
   mutate(Date = as.Date(Date, format = "%d/%m/%Y"),
          year = year(Date),
@@ -144,17 +145,18 @@ cflow.Y <- cflow %>% group_by(year) %>% summarise(
 
 
 #Add Booligal 95% complete years to a new dataframe
-inun <- tibble(.rows = 76) %>% 
-  add_column(Bool_dis = cflow.Y %>% filter(nBd >= 347) %>% .$Bool_dis,
-             Water_Year = cflow.Y %>% filter(nBd >= 347) %>% .$year)
+inun <- tibble(.rows = 77) %>% 
+  add_column(Bool_dis = cflow.WY %>% filter(nBd >= 347) %>% .$Bool_dis,
+             Water_Year = cflow.WY %>% filter(nBd >= 347) %>% .$waterYear)
 
-# load annual inundation data 
-cinun <- read_excel("raw/cumbung_inundation.xlsx",sheet = "Sheet1") 
+# load annual inundation data - these are updated by Gilad to 2024 and these are the accurate ones.
+cinun <- read_csv("raw/cumbung_inundation.csv") %>% 
+  rename("Water_Year" = "Date")
 
 # combine these 
 inun <- merge(inun, cinun, by = 'Water_Year') %>% 
   mutate(l.Bool_dis = log(Bool_dis + 1),
-         l.area.km2 = log(area.km2 + 1))
+         l.area.km2 = log(Water_area_km2 + 1))
 ```
 
 
