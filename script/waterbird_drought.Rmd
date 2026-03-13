@@ -44,7 +44,7 @@ ggplot(waterbirdCumbungMDB, aes(drought,percentage_cumbung)) +
   geom_boxplot() +
   geom_jitter(size = 4) +
   labs(x = "", y = "% Waterbirds at  Great Cumbung Swamp") +
-  scale_x_discrete(labels = c('Dry','Other')) +
+  scale_x_discrete(labels = c('Non-drought','Drought')) +
   theme_bw() + 
   theme(text = element_text(size = 32),
         axis.text = element_text(size = 28),

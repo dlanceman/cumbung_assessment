@@ -19,7 +19,6 @@ library(ggpubr)
 library(lubridate)
 library(mgcv)
 #library(tidymv)
-library(readxl)
 library(padr)
 library(here)
 ```
@@ -154,7 +153,7 @@ cinun <- read_csv("raw/cumbung_inundation.csv") %>%
   rename("Water_Year" = "Date")
 
 # combine these 
-inun <- merge(inun, cinun, by = 'Water_Year') %>% 
+inun <- left_join(inun, cinun, by = 'Water_Year') %>% 
   mutate(l.Bool_dis = log(Bool_dis + 1),
          l.area.km2 = log(Water_area_km2 + 1))
 ```
@@ -190,7 +189,7 @@ ggemmeans.Dis <- ggemmeans(M1, terms = c("l.Bool_dis[all]"))
 
 options(scipen = 1)
 
-c.flow <- plot(ggemmeans.Dis, dot.alpha = 1, dot.size = 4,  ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + 
+c.flow <- plot(ggemmeans.Dis, dot_alpha = 1, dot_size = 4, show_ci = TRUE, ci_style = "ribbon", show_dat = TRUE, jitter = 0, show_y_title = TRUE, show_title = FALSE) + 
   labs(x="Booligal flows (GL/year)",y="Four Mile flows (GL/year)",title="") +
     geom_line(size = 1) +
   theme_bw() +
@@ -205,7 +204,6 @@ c.flow <- plot(ggemmeans.Dis, dot.alpha = 1, dot.size = 4,  ci = T, add.data = T
   scale_x_continuous(breaks = pretty(cflow.WY$l.Bool_dis), 
                      labels = signif(exp(pretty(cflow.WY$l.Bool_dis))/1000,1))
 c.flow
-
 
 # make a new column that is a combination of the old and new data
 # if the raw data aren't an NA, it uses the raw data. otherwise, it uses the predicted data
@@ -240,14 +238,15 @@ inun$predict.l <- predict(M1, inun)
 # create a variable that is predicted log inundation area
 inun$predict <- exp(inun$predict.l)
 # back transform 
-plot(inun$area.km2 ~ inun$predict)
+plot(inun$Water_area_km2 ~ inun$predict)
 
 
 
 # visualise relationship between original and predicted inundation
-ggemmeans.Inun <- ggemmeans(M1, terms = c("l.Bool_dis[all]")) # this must specify the second term listed in glm
+#ggemmeans.Inun <- ggemmeans(M1, terms = c("l.Bool_dis[all]")) # this must specify the second term listed in glm
+# above doesn't currently work
 
-c.inun <- plot(ggemmeans.Inun, dot.alpha = 1, dot.size = 4, ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Booligal Flows (GL/year)",y="Cumbung Inundation Area (km2)",title="") +
+c.inun <- plot(ggemmeans.Inun, dot_alpha = 1, dot_size = 4, show_ci = TRUE, ci_style = "ribbon", show_data = TRUE, jitter = 0, show_y_title = TRUE, show_title = FALSE) + labs(x="Booligal Flows (GL/year)",y="Cumbung Inundation Area (km2)",title="") +
     geom_line(size = 1) +
   theme_bw() +
   #geom_col(aes(x = Year, y = missing_dis), width = 31, fill = "#f0f0f0") + # not working yet
@@ -264,7 +263,7 @@ c.inun
 
 
 # export
-#write.csv(inun, "output/cbool_pred_inun.csv")
+#write.csv(inun, "output2/cbool_pred_inun.csv")
 ```
 
 
@@ -424,7 +423,7 @@ cflow.WY.c$predict.Time <- predict(M1, cflow.WY.c)
 # plot
 ggemmeans.dis <- ggemmeans(M1, terms = c("waterYear[all]"))
 
-plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Water Year",y="Predicted Four mile weir discharge (ML/year)",title="")
+plot(ggemmeans.dis, colors = "hero", show_ci = TRUE, ci_style = "ribbon", show_data = TRUE, jitter = 0, show_y_title = T, show_title = FALSE) + labs(x="Water Year",y="Predicted Four mile weir discharge (ML/year)",title="")
 
 
 # test
@@ -453,7 +452,7 @@ M1 <- glm(predict ~ Water_Year, data = inun)
 par(mfrow = c(2, 2))
 plot(M1) # looks fine untransformed 
 par(mfrow = c(1, 1)) 
-ggplot(inun, aes(Water_Year, predict), na.rm = TRUE) +
+ggplot(inun, aes(Water_Year, predict)) +
   geom_point() 
 # no obvious non-linear trends
 
@@ -466,7 +465,7 @@ inun$predict.Time <- predict(M1, inun)
 # plot
 ggemmeans.dis <- ggemmeans(M1, terms = c("Water_Year[all]"))
 
-plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="Year",y="Predicted Inundation area (km2)",title="")
+plot(ggemmeans.dis, colors = "hero", show_ci = TRUE, ci_style = "ribbon", show_data = TRUE, jitter = 0, show_y_title = T, show_title = FALSE) + labs(x="Year",y="Predicted Inundation area (km2)",title="")
 
 
 # test
@@ -509,7 +508,7 @@ cflood$predict.Time <- predict(M1, cflood)
 # plot
 ggemmeans.dis <- ggemmeans(M1, terms = c("WaterYear[all]"))
 
-plot(ggemmeans.dis, colors = "hero", ci = T, add.data = TRUE, jitter = 0, show.y.title = T, show.title = FALSE) + labs(x="WaterYear",y="Predicted Four mile weir # flood days",title="")
+plot(ggemmeans.dis, colors = "hero", show_ci = TRUE, ci_style = "ribbon", show_data = TRUE, jitter = 0, show_y_title = TRUE, show_title = FALSE) + labs(x="WaterYear",y="Predicted Four mile weir # flood days",title="")
 
 
 # test
