@@ -1,2 +1,2 @@
 # cumbung_assessment
-Repository for bigger-picture assessment analyses for my Cumbung swamp honours project.
+Code for biodiversity value and condition assessment of the Great Cumbung Swamp.
