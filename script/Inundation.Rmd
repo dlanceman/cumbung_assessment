@@ -9,7 +9,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = 'C:/Users/z5204897/OneDrive - UNSW/Desktop/Honours/Assessment/cumbung_assessment')
+knitr::opts_knit$set(root.dir = 'C:/Set/Your/Directory/Here/cumbung_assessment')
 ```
 
 ```{r Set up}
@@ -23,13 +23,13 @@ library(tidyverse)
 cumbungBoundary <- st_read('raw/shp/Cumbung_ecological.shp')
 
 # put all raster files in the folder into a list
-files <- list.files(path = "C:/Users/z5204897/OneDrive - UNSW/Desktop/Honours/Assessment/cumbung_assessment/raw/raster/Inundation_reclass", pattern = "_binary.tif$")
+files <- list.files(path = "raw/raster/Inundation_reclass", pattern = "_binary.tif$")
 # $ at end means it's the end of the string so won't pick up files with extras at end of extension
 
 files
 
 #import all raster files in folder using lapply
-setwd("C:/Users/z5204897/OneDrive - UNSW/Desktop/Honours/Assessment/cumbung_assessment/raw/raster/Inundation_reclass")
+setwd("cumbung_assessment/raw/raster/Inundation_reclass")
 allrasters <- lapply(files, raster)
 ```
 
@@ -59,20 +59,19 @@ ex_long$area.km2 <- ex_long$area.m2 / 1000 / 1000
 
 view(ex_long)
 
-setwd("C:/Users/z5204897/OneDrive - UNSW/Desktop/Honours/Assessment/cumbung_assessment")
 write.csv(ex, file = "output2/annual_inundation_area.csv")
 ```
 
 
 ```{r With Gilad's data}
 # put all Landsat files in the folder into a list
-L_files <- list.files(path = "C:/Users/z5204897/OneDrive - UNSW/Desktop/Honours/Data/LandsatMaxInun", pattern = ".tif$")
+L_files <- list.files(path = "../../Data/LandsatMaxInun", pattern = ".tif$")
 # $ at end means it's the end of the string so won't pick up files with extras at end of extension
 
 files
 
 #import all raster files in folder using lapply
-setwd("C:/Users/z5204897/OneDrive - UNSW/Desktop/Honours/Assessment/cumbung_assessment/raw/raster/Inundation_reclass")
+setwd("raw/raster/Inundation_reclass")
 allrasters <- lapply(files, raster)
 ```
 

@@ -50,6 +50,9 @@ Calculate total annual waterbird counts. Calculate for both count 1 and count 2,
 Annual_total1 <- count1 %>% group_by(SurvYear) %>% 
   summarise(Count = sum(Count), Nest = sum(Nest), Broods = sum(Broods), Breeding = sum(BreedingIn))
 
+mean(Annual_total1$Count)
+sd(Annual_total1$Count)/sqrt(15)
+
 Annual_total2 <- count2 %>% group_by(SurvYear) %>% 
   summarise(Count = sum(Count), Nest = sum(Nest), Broods = sum(Broods), Breeding = sum(BreedingIn))
 ```
